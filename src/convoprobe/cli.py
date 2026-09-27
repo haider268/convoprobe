@@ -7,6 +7,7 @@ import tempfile
 from contextlib import ExitStack
 from datetime import UTC, datetime
 from importlib.resources import as_file, files
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Annotated
 
@@ -16,9 +17,11 @@ from rich.console import Console
 from rich.table import Table
 
 from convoprobe import __version__
+from convoprobe import demo as demo_package
 from convoprobe.adapters import CallableAdapter, load_adapter
 from convoprobe.config import HOSTED_JUDGE, HOSTED_SIMULATOR, Settings, load_settings
 from convoprobe.datamodels import RunResult, Scenario
+from convoprobe.demo import CASSETTE_NAME, DEMO_JUDGE, DEMO_SIMULATOR
 from convoprobe.demo.toy_agent import toy_agent_v1, toy_agent_v2
 from convoprobe.errors import ConvoprobeError
 from convoprobe.models.cache import JsonCassette, LLMCache, SqliteLLMCache
@@ -38,7 +41,13 @@ app = typer.Typer(
 )
 
 DEMO_HEADER = "DEMO: toy shop agent, scripted personas, no model calls, no API keys."
+DEMO_REPLAY_HEADER = (
+    "DEMO: toy shop agent. Scripted personas run live; LLM personas and judge verdicts"
+    " replay a cassette recorded on {recorded_at} (simulator {simulator}, judge {judge})."
+    " No API keys, no network."
+)
 DEFAULT_DB = Path(".convoprobe/convoprobe.db")
+RECORD_DB = Path(".convoprobe/demo-record.db")
 SIMULATOR_TEMPERATURE = 0.7
 JUDGE_TEMPERATURE = 0.0
 
@@ -237,40 +246,88 @@ def personas_generate(
         typer.echo(f"note: {note}", err=True)
 
 
+def _demo_cassette() -> Traversable | None:
+    """The packaged demo cassette, or None when it is not shipped."""
+    resource = files("convoprobe.demo") / CASSETTE_NAME
+    return resource if resource.is_file() else None
+
+
+def _demo_clients(
+    settings: Settings, cache: LLMCache, *, replay_only: bool, run_id: str | None
+) -> tuple[LLMClient, LLMClient]:
+    """Fresh simulator and judge clients, so each run reports its own usage."""
+    registry = LLMRegistry(settings, cache, replay_only=replay_only, run_id=run_id)
+    return (
+        registry.client(DEMO_SIMULATOR, SIMULATOR_TEMPERATURE),
+        registry.client(DEMO_JUDGE, JUDGE_TEMPERATURE),
+    )
+
+
+async def _demo_run(
+    scenario: Scenario,
+    version: str,
+    store: RunStore,
+    out_dir: Path,
+    clients: tuple[LLMClient, LLMClient] | None,
+    run_id: str | None = None,
+) -> RunResult:
+    fn = toy_agent_v1 if version == "v1" else toy_agent_v2
+    sim, judge = clients if clients else (None, None)
+    return await run_scenario(
+        scenario,
+        CallableAdapter(fn),
+        store=store,
+        out_dir=out_dir,
+        adapter_label=f"demo:toy_agent_{version}",
+        run_id=run_id,
+        llm_simulator=LLMSimulator(sim) if sim else None,
+        judge_client=judge,
+        persona_client=sim,
+    )
+
+
 @app.command()
 def demo(
     out: Annotated[
         Path | None, typer.Option(help="Keep results here instead of a temp folder.")
     ] = None,
+    record: Annotated[
+        bool,
+        typer.Option("--record", help="Record a new demo cassette live. Needs GROQ_API_KEY."),
+    ] = False,
 ) -> None:
-    """Run the offline demo: toy agent v1, then a buggy v2, then compare."""
+    """Run the demo: toy agent v1, then a buggy v2, then compare."""
+    if record:
+        _demo_record(out)
+        return
     console = Console()
-    console.print(DEMO_HEADER, markup=False, soft_wrap=True)
-    with (
-        tempfile.TemporaryDirectory(prefix="convoprobe-demo-") as tmp,
-        as_file(files("convoprobe.demo") / "scenario.yaml") as scenario_file,
-    ):
+    resource = _demo_cassette()
+    with ExitStack() as stack:
+        tmp = stack.enter_context(tempfile.TemporaryDirectory(prefix="convoprobe-demo-"))
+        scenario_file = stack.enter_context(as_file(files("convoprobe.demo") / "scenario.yaml"))
         scenario = load_scenario(scenario_file)
         out_dir = out if out is not None else Path(tmp) / "results"
-        with RunStore(Path(tmp) / "demo.db") as store:
-            v1 = asyncio.run(
-                run_scenario(
-                    scenario,
-                    CallableAdapter(toy_agent_v1),
-                    store=store,
-                    out_dir=out_dir,
-                    adapter_label="demo:toy_agent_v1",
-                )
+        cassette: JsonCassette | None = None
+        header = DEMO_HEADER
+        if resource is not None:
+            cassette = JsonCassette(stack.enter_context(as_file(resource)))
+            header = DEMO_REPLAY_HEADER.format(
+                recorded_at=cassette.meta.get("recorded_at", "an unknown date"),
+                simulator=DEMO_SIMULATOR,
+                judge=DEMO_JUDGE,
             )
-            v2 = asyncio.run(
-                run_scenario(
-                    scenario,
-                    CallableAdapter(toy_agent_v2),
-                    store=store,
-                    out_dir=out_dir,
-                    adapter_label="demo:toy_agent_v2",
-                )
+        console.print(header, markup=False, soft_wrap=True)
+        settings = load_settings()
+        store = stack.enter_context(RunStore(Path(tmp) / "demo.db"))
+        results = []
+        for version in ("v1", "v2"):
+            clients = (
+                _demo_clients(settings, cassette, replay_only=True, run_id=None)
+                if cassette is not None
+                else None
             )
+            results.append(asyncio.run(_demo_run(scenario, version, store, out_dir, clients)))
+    v1, v2 = results
     print_run_report(v1, console, "v1 (correct agent)")
     print_run_report(v2, console, "v2 (prompt change with a bug)")
     regressed = _print_comparison(v1, v2, console)
@@ -279,6 +336,61 @@ def demo(
         markup=False,
         soft_wrap=True,
     )
+
+
+def _demo_record(out: Path | None) -> None:
+    """Run v1 and v2 live, then write the cassette if every conversation finished."""
+    console = Console()
+    settings = load_settings()
+    with ExitStack() as stack:
+        try:
+            _demo_clients(settings, _NullCache(), replay_only=False, run_id=None)
+        except ConvoprobeError as exc:
+            raise _fail(str(exc)) from None
+        RECORD_DB.unlink(missing_ok=True)
+        tmp = stack.enter_context(tempfile.TemporaryDirectory(prefix="convoprobe-record-"))
+        scenario_file = stack.enter_context(as_file(files("convoprobe.demo") / "scenario.yaml"))
+        scenario = load_scenario(scenario_file)
+        out_dir = out if out is not None else Path(tmp) / "results"
+        store = stack.enter_context(RunStore(RECORD_DB))
+        cache = stack.enter_context(SqliteLLMCache(RECORD_DB))
+        results: list[RunResult] = []
+        for version in ("v1", "v2"):
+            run_id = f"demo-{version}"
+            clients = _demo_clients(settings, cache, replay_only=False, run_id=run_id)
+            results.append(
+                asyncio.run(_demo_run(scenario, version, store, out_dir, clients, run_id))
+            )
+        failures = [
+            (cid, next((c.error for c in result.conversations if c.id == cid), None))
+            for result in results
+            for cid, status in result.conversation_status.items()
+            if status != "done"
+        ]
+        if failures:
+            for cid, error in failures:
+                typer.echo(f"{cid}: {error or 'no error recorded'}", err=True)
+            typer.echo("cassette not written: not every conversation finished", err=True)
+            raise typer.Exit(code=1)
+        cassette_path = Path(demo_package.__file__).parent / CASSETTE_NAME
+        meta = {"recorded_at": _today(), "simulator": DEMO_SIMULATOR, "judge": DEMO_JUDGE}
+        count = cache.export_cassette(["demo-v1", "demo-v2"], cassette_path, meta=meta)
+    typer.echo(f"wrote {count} entries to {cassette_path}")
+    print_run_report(results[0], console, "v1 (correct agent)")
+    print_run_report(results[1], console, "v2 (prompt change with a bug)")
+
+
+class _NullCache:
+    """Only used to check model settings and keys before a recording starts."""
+
+    def get(self, key: str) -> None:
+        return None
+
+    def put(self, key: str, spec: str, kind: str, response: dict[str, object]) -> None:
+        return None
+
+    def mark_used(self, run_id: str, key: str) -> None:
+        return None
 
 
 def _print_comparison(old: RunResult, new: RunResult, console: Console) -> list[str]:

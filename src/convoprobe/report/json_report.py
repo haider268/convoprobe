@@ -60,11 +60,14 @@ def print_run_report(result: RunResult, console: Console, title: str) -> None:
             soft_wrap=True,
         )
     statuses = list(result.conversation_status.values())
-    console.print(
+    line = (
         f"conversations: {statuses.count('done')} done, {statuses.count('failed')} failed,"
-        f" {statuses.count('failed_transient')} transient, {statuses.count('skipped')} skipped",
-        soft_wrap=True,
+        f" {statuses.count('failed_transient')} transient, {statuses.count('skipped')} skipped"
     )
+    sim_errors = sum(1 for c in result.conversations if c.ended_reason == "simulator_error")
+    if sim_errors:
+        line += f", {sim_errors} simulator errors"
+    console.print(line, soft_wrap=True)
     console.print(f"overall pass rate: {format_rate(result.overall_pass_rate)}", soft_wrap=True)
     for note in result.notes:
         console.print(f"note: {note}", markup=False, soft_wrap=True)

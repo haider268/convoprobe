@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from convoprobe.datamodels import LLMPersona, Message, Scenario, ScriptedPersona
 from convoprobe.errors import ConvoprobeError
-from convoprobe.models.client import LLMClient
+from convoprobe.models.client import LLMClient, StructuredOutputError
 
 SIMULATOR_SYSTEM = """You are role-playing a USER talking to an AI agent. You are NOT the agent. Never offer help, never answer as the agent.
 
@@ -85,11 +85,13 @@ class LLMSimulator:
     ) -> str | None:
         if isinstance(persona, ScriptedPersona):
             raise ConvoprobeError(f"persona {persona.id} is scripted, not an LLM persona")
-        turn = await self.client.structured(
-            build_messages(scenario, persona, messages),
-            SimTurn,
-            salt=f"sim:{conversation_id}:{len(messages)}",
-        )
+        chat = build_messages(scenario, persona, messages)
+        salt = f"sim:{conversation_id}:{len(messages)}"
+        try:
+            turn = await self.client.structured(chat, SimTurn, salt=salt)
+        except StructuredOutputError:
+            # One retry with a fresh sample; a second failure propagates.
+            turn = await self.client.structured(chat, SimTurn, salt=salt + ":retry1")
         agent_replied = any(m.role == "agent" for m in messages)
         if agent_replied and turn.goal_status != "in_progress":
             return None

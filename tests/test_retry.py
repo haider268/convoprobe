@@ -160,6 +160,34 @@ async def test_other_403_re_raised_unchanged() -> None:
     assert info.value is original
 
 
+class TooLarge(Exception):
+    status_code = 429
+
+
+async def test_request_too_large_not_retried() -> None:
+    rec = Recorder()
+    original = TooLarge("Error code: 429 - Request too large for model on tokens per minute")
+    assert is_transient(original) is False
+    fn, calls = failing([original])
+    with pytest.raises(ConvoprobeError) as info:
+        await call_with_retry(fn, policy=RetryPolicy(), label="groq:x", sleep=rec.sleep)
+    assert str(info.value) == (
+        "groq:x: request is larger than the provider's per-minute token limit."
+        " Use a model with a higher limit or a shorter scenario."
+    )
+    assert info.value.__cause__ is original
+    assert calls["n"] == 1
+    assert rec.sleeps == []
+
+
+async def test_ordinary_429_still_retried() -> None:
+    rec = Recorder()
+    fn, calls = failing([TooLarge("Error code: 429 - Rate limit reached")])
+    assert await call_with_retry(fn, policy=RetryPolicy(), label="groq:x", sleep=rec.sleep) == "ok"
+    assert calls["n"] == 2
+    assert len(rec.sleeps) == 1
+
+
 async def test_max_delay_cap() -> None:
     rec = Recorder()
     fn, _ = failing([StatusError(429) for _ in range(5)])

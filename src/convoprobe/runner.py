@@ -25,7 +25,7 @@ from convoprobe.datamodels import (
 )
 from convoprobe.errors import TransientError
 from convoprobe.jsonlog import JsonlLogger
-from convoprobe.models.client import LLMClient, ReplayMissError
+from convoprobe.models.client import LLMClient, ReplayMissError, StructuredOutputError
 from convoprobe.report.json_report import write_results
 from convoprobe.scoring.deterministic import run_deterministic_checks
 from convoprobe.scoring.judge import run_judge_checks
@@ -38,6 +38,10 @@ NO_SIMULATOR = "no simulator model configured"
 RUNNABLE = {"pending", "failed_transient"}
 
 Persona = LLMPersona | ScriptedPersona
+
+
+class _SimulatorFailure(Exception):
+    """The simulator, not the agent, failed (bad output or replay miss)."""
 
 
 def new_run_id() -> str:
@@ -213,9 +217,12 @@ async def _converse(
         await adapter.start(cid)
         try:
             for _ in range(scenario.max_turns):
-                text = await simulator.next_message(
-                    scenario, persona, conversation.messages, conversation_id=cid
-                )
+                try:
+                    text = await simulator.next_message(
+                        scenario, persona, conversation.messages, conversation_id=cid
+                    )
+                except (StructuredOutputError, ReplayMissError) as exc:
+                    raise _SimulatorFailure(str(exc)) from exc
                 if text is None:
                     stop = isinstance(persona, ScriptedPersona)
                     conversation.ended_reason = "script_end" if stop else "simulator_stop"
@@ -245,6 +252,10 @@ async def _converse(
             await adapter.end(cid)
     except TransientError as exc:
         _fail(store, log, run_id, conversation, "failed_transient", str(exc))
+        return
+    except _SimulatorFailure as exc:
+        conversation.ended_reason = "simulator_error"
+        _fail(store, log, run_id, conversation, "failed", f"simulator: {exc}")
         return
     except Exception as exc:
         status = "failed"

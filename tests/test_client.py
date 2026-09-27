@@ -90,6 +90,14 @@ async def test_salt_gives_independent_samples(cache: SqliteLLMCache) -> None:
     assert model.calls == 2
 
 
+def test_key_depends_on_structured_method(cache: SqliteLLMCache) -> None:
+    plain, _ = client(cache, [])
+    json_schema, _ = client(cache, [], structured_method="json_schema")
+    assert plain.cache_key("structured", MESSAGES, Verdict, "") != json_schema.cache_key(
+        "structured", MESSAGES, Verdict, ""
+    )
+
+
 def test_key_depends_on_temperature_schema_and_kind(cache: SqliteLLMCache) -> None:
     cold, _ = client(cache, [], temperature=0.0)
     warm, _ = client(cache, [], temperature=0.7)

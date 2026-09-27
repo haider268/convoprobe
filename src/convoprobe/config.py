@@ -7,9 +7,11 @@ import os
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Hosted defaults: different model families so the judge does not grade its own style.
+# Hosted defaults, chosen from review-lane measurements on 28 Sep 2026 (gpt-oss-120b 4/4
+# valid judge outputs, qwen3.8-27b 1/4). The judge should be the strongest available model
+# and, for real agents, a different model family from the agent under test.
 HOSTED_SIMULATOR = "groq:openai/gpt-oss-20b"
-HOSTED_JUDGE = "groq:qwen/qwen3.8-27b"
+HOSTED_JUDGE = "groq:openai/gpt-oss-120b"
 
 
 class Settings(BaseSettings):

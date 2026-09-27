@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from convoprobe.datamodels import LLMPersona, Message, Scenario, ScriptedPersona
 from convoprobe.errors import ConvoprobeError
 from convoprobe.models.cache import SqliteLLMCache
+from convoprobe.models.client import StructuredOutputError
 from convoprobe.simulator.llm import OPENING, SIMULATOR_SYSTEM, LLMSimulator, SimTurn
 from convoprobe.simulator.simulator import UserSimulator
 from tests.llm_doubles import fake_client
@@ -99,6 +100,21 @@ async def test_salt_differs_by_conversation_and_turn(cache: SqliteLLMCache) -> N
     assert key_turn0 != key_turn2
     assert await sim.next_message(SCENARIO, PAT, history, conversation_id="pat-r0") == "line 2"
     assert model.calls == 3
+
+
+async def test_retry_once_on_bad_output(cache: SqliteLLMCache) -> None:
+    client, model = fake_client(cache, ["BAD", turn("in_progress", "second try")])
+    text = await LLMSimulator(client).next_message(SCENARIO, PAT, [], conversation_id="c1")
+    assert text == "second try"
+    assert model.calls == 2
+    assert model.seen[0] == model.seen[1]
+
+
+async def test_second_bad_output_propagates(cache: SqliteLLMCache) -> None:
+    client, model = fake_client(cache, ["BAD", "BAD"])
+    with pytest.raises(StructuredOutputError):
+        await LLMSimulator(client).next_message(SCENARIO, PAT, [], conversation_id="c1")
+    assert model.calls == 2
 
 
 async def test_scripted_persona_raises(cache: SqliteLLMCache) -> None:

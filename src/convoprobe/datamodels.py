@@ -61,7 +61,10 @@ class Conversation(_Strict):
     persona_id: str
     repeat_index: int = 0
     messages: list[Message] = []
-    ended_reason: Literal["max_turns", "simulator_stop", "script_end", "agent_error"] | None = None
+    ended_reason: (
+        Literal["max_turns", "simulator_stop", "script_end", "agent_error", "simulator_error"]
+        | None
+    ) = None
     error: str | None = None
 
     def agent_messages(self) -> list[Message]:

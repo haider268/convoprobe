@@ -12,7 +12,14 @@ import pytest
 from rich.console import Console
 
 from convoprobe.adapters import CallableAdapter
-from convoprobe.datamodels import AgentTurn, Message, RunResult, Scenario, ToolCallRecord
+from convoprobe.datamodels import (
+    AgentTurn,
+    CheckResult,
+    Message,
+    RunResult,
+    Scenario,
+    ToolCallRecord,
+)
 from convoprobe.models.cache import SqliteLLMCache
 from convoprobe.models.client import LLMClient
 from convoprobe.report.json_report import print_run_report
@@ -205,6 +212,59 @@ async def test_judge_replay_miss_fails(
     assert result.conversations[0].error is not None
     assert result.conversations[0].error.startswith("replay: no recorded response")
     assert store.load_checks("rp") == []
+
+
+async def test_simulator_double_failure_is_simulator_error(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    sim, _ = simulator(cache, ["BAD", "BAD"])
+    store.create_or_resume_run("se", LLM_SCENARIO, "test")
+    store.ensure_conversation("se", "cooperative-r0", "cooperative", 0)
+    stale = CheckResult(
+        rubric_id="turns",
+        persona_id="cooperative",
+        conversation_id="cooperative-r0",
+        status="pass",
+        detail="stale",
+    )
+    store.save_checks("se", "cooperative-r0", [stale])
+    assert store.load_checks("se") == [stale]
+    result = await run(LLM_SCENARIO, store, tmp_path, run_id="se", llm_simulator=sim)
+    assert result.conversation_status == {"cooperative-r0": "failed"}
+    conversation = result.conversations[0]
+    assert conversation.ended_reason == "simulator_error"
+    assert conversation.error is not None
+    assert conversation.error.startswith("simulator: ollama:sim returned output that does not")
+    assert store.load_checks("se") == []
+
+    out = io.StringIO()
+    print_run_report(result, Console(file=out, width=200), "report")
+    assert (
+        "conversations: 0 done, 1 failed, 0 transient, 0 skipped, 1 simulator errors"
+        in out.getvalue().splitlines()
+    )
+
+
+async def test_simulator_replay_miss_is_simulator_error(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    replay = LLMClient(
+        "ollama:sim", cache=cache, chat_model=None, temperature=0.7, replay_only=True
+    )
+    result = await run(LLM_SCENARIO, store, tmp_path, llm_simulator=LLMSimulator(replay))
+    conversation = result.conversations[0]
+    assert conversation.ended_reason == "simulator_error"
+    assert conversation.error is not None
+    assert conversation.error.startswith("simulator: no recorded response for ollama:sim")
+
+
+async def test_simulator_transient_is_still_failed_transient(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    sim, _ = simulator(cache, [ServerDown("down")] * 4)
+    result = await run(LLM_SCENARIO, store, tmp_path, llm_simulator=sim)
+    assert list(result.conversation_status.values()) == ["failed_transient"]
+    assert result.conversations[0].ended_reason is None
 
 
 async def test_agent_error_still_judged(

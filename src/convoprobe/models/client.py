@@ -90,8 +90,9 @@ class LLMClient:
         salt: str,
     ) -> str:
         payload = {
-            "v": 1,
+            "v": 2,
             "spec": self.spec,
+            "method": self.structured_method,
             "kind": kind,
             "temperature": self.temperature,
             "schema": schema.model_json_schema() if schema else None,

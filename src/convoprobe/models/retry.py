@@ -58,8 +58,15 @@ def _chain(exc: BaseException) -> list[BaseException]:
     return seen
 
 
+def is_too_large(exc: BaseException) -> bool:
+    """A 429 that means one request exceeds the per-minute token limit. Waiting cannot fix it."""
+    return any(status_of(e) == 429 and "Request too large" in str(e) for e in _chain(exc))
+
+
 def is_transient(exc: BaseException) -> bool:
     """True for rate limits, 5xx, timeouts, and connection failures."""
+    if is_too_large(exc):
+        return False
     for e in _chain(exc):
         if status_of(e) in TRANSIENT_STATUS:
             return True
@@ -93,6 +100,11 @@ async def call_with_retry(
         except Exception as exc:
             if status_of(exc) == 403 and label.startswith("groq:"):
                 raise ConvoprobeError(VPN_MESSAGE) from exc
+            if is_too_large(exc):
+                raise ConvoprobeError(
+                    f"{label}: request is larger than the provider's per-minute token limit."
+                    " Use a model with a higher limit or a shorter scenario."
+                ) from exc
             if not is_transient(exc):
                 raise
             if attempt == policy.max_attempts - 1:

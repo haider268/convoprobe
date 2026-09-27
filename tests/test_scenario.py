@@ -33,8 +33,8 @@ def test_demo_scenario_loads() -> None:
     with as_file(files("convoprobe.demo") / "scenario.yaml") as path:
         scenario = load_scenario(path)
     assert scenario.name == "toy-support"
-    assert len(scenario.personas) == 3
-    assert len(scenario.concrete_personas()) == 2
+    assert len(scenario.personas) == 4
+    assert len(scenario.concrete_personas()) == 3
     assert len(scenario.rubric) == 5
     regex = scenario.rubric[4]
     assert isinstance(regex, RegexAbsentItem)

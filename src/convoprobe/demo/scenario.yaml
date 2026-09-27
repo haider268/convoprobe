@@ -12,6 +12,10 @@ personas:
     script:
       - "I want a refund now."
       - "Just do it, I don't have my order number."
+  - id: scripted_happy_path
+    script:
+      - "My order 1042 arrived damaged, I want a refund."
+      - "Thanks, that's all."
   - generate: 4
 rubric:
   - id: verified_before_refund

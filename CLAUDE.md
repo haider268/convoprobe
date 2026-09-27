@@ -26,15 +26,19 @@ code out. Status: milestone 1 (core loop, scripted personas, offline demo).
 uv lives at `C:\Users\maria\.local\bin\uv.exe` if it is not on PATH.
 
 ```
-uv sync                   # core + dev group, no extras
+uv sync --all-extras      # core + dev group + provider extras (as CI does)
 uv run convoprobe demo    # offline v1 vs v2 regression demo, zero keys
 uv run convoprobe run src/convoprobe/demo/scenario.yaml \
     --adapter convoprobe.demo.toy_agent:toy_agent_v1
-uv run pytest             # offline tests with coverage
+uv run pytest             # offline tests with coverage, live tests excluded
+uv run pytest -m live -q --no-cov   # live tests: need Ollama running
 uv run ruff check
 uv run ruff format --check
 uv run mypy src
 ```
+
+Live tests are marked `@pytest.mark.live` and live under `tests/live/`.
+`addopts` excludes them by default, so CI never touches a model or network.
 
 `run` options: `--out results`, `--run-id` (reuse to resume), `--db
 .convoprobe/convoprobe.db`, `--concurrency 4`. Exit 2 on scenario, adapter,
@@ -43,7 +47,9 @@ or store errors.
 ## Layout
 
 - `datamodels.py`: all Pydantic models. Not `models.py`, because `models/` is
-  the chat model factory (milestone 2).
+  the chat model package.
+- `config.py`: `Settings` from env / `.env`. Model specs, timeouts, and
+  per-provider rpm, tpm, concurrency. Blank env values count as unset.
 - `scenario.py`: `load_scenario` / `parse_scenario`, errors as
   `<path>: <dotted.loc>: <msg>`.
 - `errors.py`: `ConvoprobeError`, `TransientError` (retried on next run),
@@ -62,6 +68,35 @@ or store errors.
   `scenario.yaml`. Package data, ships in the wheel.
 - `cli.py`: `version`, `run`, `demo`.
 - No module may shadow a stdlib name (hence `jsonlog.py`, `json_report.py`).
+
+## models/ (LLM infrastructure)
+
+- `factory.py`: `parse_spec("ollama:qwen2.5:3b")` splits on the first colon.
+  `make_chat_model` builds ChatOllama, ChatGroq, or ChatGoogleGenerativeAI
+  with `max_retries=0` (convoprobe retries itself).
+- `client.py`: `LLMClient.text()` and `.structured(schema)`. Cache first; on
+  a miss, rate limit, retry, call, then store. Bad structured output raises
+  `StructuredOutputError` and is never cached.
+- `cache.py`: `SqliteLLMCache` (read-write, records which run used which key)
+  and `JsonCassette` (read-only). `export_cassette(run_ids, path)` writes a
+  cassette of every entry those runs used.
+- `retry.py`: transient = 408/429/5xx, timeouts, connection errors, found
+  anywhere in the cause/context chain. Backoff doubles with half jitter.
+  Groq 403 means a VPN is on and is reported as such, not retried.
+- `ratelimit.py`: `TokenBucket`, `ProviderLimiter`. Each retry attempt takes
+  its own slot, so backoff sleeps never hold a concurrency slot.
+- `registry.py`: `LLMRegistry` builds clients, one shared limiter per provider.
+- `preflight.py`: `check_ollama` names any model that still needs `ollama pull`.
+
+Rules:
+- Cache key = spec, kind, temperature, schema, messages, and a **salt**.
+  Callers pass a salt such as conversation id + turn, so repeats of the same
+  conversation get independent samples instead of one cached answer.
+- **Replay mode** (`replay_only=True` with a `JsonCassette`): no chat model is
+  built and no provider package is imported. A miss raises `ReplayMissError`.
+- Provider packages are imported lazily, only inside `make_chat_model`.
+  Importing `convoprobe.cli` or `convoprobe.models` must not import them; a
+  subprocess test enforces this.
 
 ## Store schema
 
@@ -95,7 +130,11 @@ or store errors.
   with exact detail strings.
 - New adapter: implement the three async `AgentAdapter` methods. Raise
   `TransientError` for retryable failures.
-- New provider: comes with the model factory in milestone 2.
+- New provider: add it to `PROVIDERS` and `_CLASSES` in `models/factory.py`
+  with its constructor arguments (`max_retries=0`), add an optional extra in
+  `pyproject.toml`, add its limiter settings to `config.py` and
+  `LLMRegistry.limiter`, and add its error class names to `retry.py` if they
+  are not already covered.
 
 ## Contracts
 

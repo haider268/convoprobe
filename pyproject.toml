@@ -77,4 +77,5 @@ packages = ["convoprobe"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=convoprobe --cov-report=term-missing"
+markers = ["live: needs a running local model or an API key; run with -m live"]
+addopts = "-m 'not live' --cov=convoprobe --cov-report=term-missing"

@@ -44,9 +44,9 @@ SCALE_INSTRUCTION = "Give a score from 1 (very poor) to 5 (excellent)."
 REASONING_LIMIT = 300
 
 
+# Evidence as the model sees it. A comment, not a docstring: pydantic would send a
+# docstring to the model as the schema description.
 class JudgeEvidence(BaseModel):
-    """Evidence as the model sees it: no quote_found field."""
-
     turn: int
     quote: str
 

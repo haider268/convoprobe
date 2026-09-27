@@ -11,6 +11,8 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from pydantic import Field
 
+from convoprobe.models.client import LLMClient
+
 USAGE = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
 
 
@@ -77,3 +79,24 @@ class FakeChatModel(BaseChatModel):
             return {"raw": raw, "parsed": output, "parsing_error": None}
 
         return RunnableLambda(run)
+
+
+async def no_sleep(_seconds: float) -> None:
+    """Retry sleep that returns at once."""
+
+
+def fake_client(
+    cache: Any, outputs: list[Any], spec: str = "ollama:fake", **kwargs: Any
+) -> tuple[LLMClient, FakeChatModel]:
+    """A real LLMClient over a scripted FakeChatModel, with instant retries."""
+    model = FakeChatModel(outputs=list(outputs))
+    client = LLMClient(
+        spec, cache=cache, chat_model=model, temperature=0.0, sleep=no_sleep, **kwargs
+    )
+    return client, model
+
+
+class ServerDown(Exception):
+    """Transient: HTTP 503."""
+
+    status_code = 503

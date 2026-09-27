@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import tempfile
+from contextlib import ExitStack
 from importlib.resources import as_file, files
 from pathlib import Path
 from typing import Annotated
@@ -14,12 +15,19 @@ from rich.table import Table
 
 from convoprobe import __version__
 from convoprobe.adapters import CallableAdapter, load_adapter
-from convoprobe.datamodels import RunResult
+from convoprobe.config import HOSTED_JUDGE, HOSTED_SIMULATOR, Settings, load_settings
+from convoprobe.datamodels import RunResult, Scenario
 from convoprobe.demo.toy_agent import toy_agent_v1, toy_agent_v2
 from convoprobe.errors import ConvoprobeError
+from convoprobe.models.cache import JsonCassette, LLMCache, SqliteLLMCache
+from convoprobe.models.client import LLMClient
+from convoprobe.models.factory import parse_spec
+from convoprobe.models.preflight import check_ollama
+from convoprobe.models.registry import LLMRegistry
 from convoprobe.report.json_report import format_rate, print_run_report
-from convoprobe.runner import run_scenario
-from convoprobe.scenario import ScenarioError, load_scenario
+from convoprobe.runner import new_run_id, run_scenario
+from convoprobe.scenario import ScenarioError, load_scenario, parse_scenario
+from convoprobe.simulator.llm import LLMSimulator
 from convoprobe.store import RunStore
 
 app = typer.Typer(
@@ -27,6 +35,9 @@ app = typer.Typer(
 )
 
 DEMO_HEADER = "DEMO: toy shop agent, scripted personas, no model calls, no API keys."
+DEFAULT_DB = Path(".convoprobe/convoprobe.db")
+SIMULATOR_TEMPERATURE = 0.7
+JUDGE_TEMPERATURE = 0.0
 
 
 def _fail(message: str) -> typer.Exit:
@@ -45,22 +56,97 @@ def version() -> None:
     typer.echo(__version__)
 
 
+def _open_cassette(path: Path) -> JsonCassette:
+    if not path.is_file():
+        raise ConvoprobeError(f"cassette not found: {path}")
+    try:
+        return JsonCassette(path)
+    except ValueError as exc:
+        raise ConvoprobeError(f"cassette {path} is not valid JSON: {exc}") from exc
+
+
+def _pick_spec(explicit: str | None, hosted: bool, hosted_spec: str, default: str) -> str:
+    if explicit:
+        return explicit
+    return hosted_spec if hosted else default
+
+
+async def _preflight(settings: Settings, specs: list[str]) -> None:
+    """Check Ollama is up and has the models, when any spec uses Ollama."""
+    models: list[str] = []
+    for spec in specs:
+        provider, model = parse_spec(spec)
+        if provider == "ollama" and model not in models:
+            models.append(model)
+    if models:
+        await check_ollama(settings.ollama_base_url, models)
+
+
+def _with_repeats(scenario: Scenario, repeats: int, source: str) -> Scenario:
+    updated = scenario.model_copy(update={"repeats": repeats})
+    return parse_scenario(updated.model_dump(mode="json"), source=source)
+
+
 @app.command()
 def run(
     scenario_path: Annotated[Path, typer.Argument(metavar="SCENARIO", help="Scenario YAML file.")],
     adapter: Annotated[str, typer.Option(help="Agent adapter as module.path:attr.")],
     out: Annotated[Path, typer.Option(help="Output folder for results.")] = Path("results"),
     run_id: Annotated[str | None, typer.Option(help="Run id. Reuse one to resume.")] = None,
-    db: Annotated[Path, typer.Option(help="SQLite state file.")] = Path(
-        ".convoprobe/convoprobe.db"
-    ),
+    db: Annotated[Path, typer.Option(help="SQLite state and LLM cache file.")] = DEFAULT_DB,
     concurrency: Annotated[int, typer.Option(min=1, help="Conversations at once.")] = 4,
+    simulator: Annotated[
+        str | None, typer.Option(help="Simulator model as provider:model.")
+    ] = None,
+    judge: Annotated[str | None, typer.Option(help="Judge model as provider:model.")] = None,
+    hosted: Annotated[
+        bool, typer.Option("--hosted", help="Use the hosted Groq defaults for unset models.")
+    ] = False,
+    replay: Annotated[
+        Path | None, typer.Option(help="Replay LLM calls from a cassette. No keys needed.")
+    ] = None,
+    no_llm: Annotated[
+        bool, typer.Option("--no-llm", help="No simulator, judge, or persona generation.")
+    ] = False,
+    repeats: Annotated[int | None, typer.Option(help="Override the scenario's repeats.")] = None,
 ) -> None:
     """Run a scenario against an agent and write results."""
+    if no_llm and (replay is not None or hosted or simulator or judge):
+        raise _fail("--no-llm cannot be combined with model options")
     try:
         scenario = load_scenario(scenario_path)
+        if repeats is not None:
+            scenario = _with_repeats(scenario, repeats, str(scenario_path))
         agent = load_adapter(adapter)
-        with RunStore(db) as store:
+        run_id = run_id or new_run_id()
+        with ExitStack() as stack:
+            store = stack.enter_context(RunStore(db))
+            sim_client: LLMClient | None = None
+            judge_client: LLMClient | None = None
+            if no_llm:
+                typer.echo("mode: no-llm")
+            else:
+                settings = load_settings()
+                sim_spec = _pick_spec(
+                    simulator, hosted, HOSTED_SIMULATOR, settings.convoprobe_simulator
+                )
+                judge_spec = _pick_spec(judge, hosted, HOSTED_JUDGE, settings.convoprobe_judge)
+                cache: LLMCache = (
+                    _open_cassette(replay)
+                    if replay is not None
+                    else stack.enter_context(SqliteLLMCache(db))
+                )
+                registry = LLMRegistry(
+                    settings, cache, replay_only=replay is not None, run_id=run_id
+                )
+                sim_client = registry.client(sim_spec, SIMULATOR_TEMPERATURE)
+                judge_client = registry.client(judge_spec, JUDGE_TEMPERATURE)
+                if replay is None:
+                    asyncio.run(_preflight(settings, [sim_spec, judge_spec]))
+                    typer.echo("mode: live")
+                else:
+                    typer.echo(f"mode: replay ({replay})")
+                typer.echo(f"models: simulator {sim_spec}, judge {judge_spec}")
             result = asyncio.run(
                 run_scenario(
                     scenario,
@@ -70,6 +156,9 @@ def run(
                     adapter_label=adapter,
                     run_id=run_id,
                     concurrency=concurrency,
+                    llm_simulator=LLMSimulator(sim_client) if sim_client else None,
+                    judge_client=judge_client,
+                    persona_client=sim_client,
                 )
             )
     except (ScenarioError, ConvoprobeError) as exc:

@@ -49,6 +49,7 @@ def test_run(tmp_path: Path) -> None:
         str(tmp_path / "out"),
         "--run-id",
         "cli-run",
+        "--no-llm",
     ]
     result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
@@ -92,6 +93,7 @@ def test_run_scenario_mismatch(tmp_path: Path) -> None:
         str(tmp_path / "out"),
         "--run-id",
         "same",
+        "--no-llm",
     ]
     assert runner.invoke(app, ["run", demo_scenario_path(), *common]).exit_code == 0
     result = runner.invoke(app, ["run", str(other), *common])

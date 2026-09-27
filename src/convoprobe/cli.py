@@ -29,7 +29,9 @@ from convoprobe.models.client import LLMClient
 from convoprobe.models.factory import parse_spec
 from convoprobe.models.preflight import check_ollama
 from convoprobe.models.registry import LLMRegistry
+from convoprobe.report.html import write_html
 from convoprobe.report.json_report import format_rate, print_run_report
+from convoprobe.report.load import load_results, results_file
 from convoprobe.runner import new_run_id, run_scenario
 from convoprobe.scenario import ScenarioError, load_scenario, parse_scenario
 from convoprobe.simulator.llm import LLMSimulator
@@ -48,6 +50,7 @@ DEMO_REPLAY_HEADER = (
 )
 DEFAULT_DB = Path(".convoprobe/convoprobe.db")
 RECORD_DB = Path(".convoprobe/demo-record.db")
+REPORT_FILE = "report.html"
 SIMULATOR_TEMPERATURE = 0.7
 JUDGE_TEMPERATURE = 0.0
 
@@ -131,6 +134,9 @@ def run(
         bool, typer.Option("--no-llm", help="No simulator, judge, or persona generation.")
     ] = False,
     repeats: Annotated[int | None, typer.Option(help="Override the scenario's repeats.")] = None,
+    html: Annotated[
+        bool, typer.Option("--html", help="Also write report.html next to results.json.")
+    ] = False,
 ) -> None:
     """Run a scenario against an agent and write results."""
     if no_llm and (replay is not None or hosted or simulator or judge):
@@ -190,6 +196,32 @@ def run(
     console = Console()
     print_run_report(result, console, f"convoprobe run {result.run_id}")
     console.print(f"results: {out / result.run_id / 'results.json'}", markup=False, soft_wrap=True)
+    if html:
+        path = write_html(result, out / result.run_id / REPORT_FILE)
+        console.print(f"html: {path}", markup=False, soft_wrap=True)
+
+
+@app.command()
+def report(
+    results: Annotated[
+        Path, typer.Argument(metavar="RESULTS", help="A run folder or its results.json.")
+    ],
+    html: Annotated[bool, typer.Option("--html", help="Also write an HTML report.")] = False,
+    out: Annotated[
+        Path | None, typer.Option(help="HTML path. Default: report.html next to results.json.")
+    ] = None,
+) -> None:
+    """Print the report for a finished run, and optionally write it as HTML."""
+    try:
+        result = load_results(results)
+    except ConvoprobeError as exc:
+        raise _fail(str(exc)) from None
+    console = Console()
+    print_run_report(result, console, f"convoprobe report {result.run_id}")
+    if html:
+        target = out if out is not None else results_file(results).parent / REPORT_FILE
+        path = write_html(result, target)
+        console.print(f"html: {path}", markup=False, soft_wrap=True)
 
 
 cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)
@@ -342,6 +374,10 @@ def demo(
     v1, v2 = results
     print_run_report(v1, console, "v1 (correct agent)")
     print_run_report(v2, console, "v2 (prompt change with a bug)")
+    if out is not None:
+        for version, result in (("v1", v1), ("v2", v2)):
+            path = write_html(result, out / result.run_id / REPORT_FILE)
+            console.print(f"html {version}: {path}", markup=False, soft_wrap=True)
     regressed = _print_comparison(v1, v2, console)
     console.print(
         f"v2 regressed on {len(regressed)} rubric item(s): {', '.join(regressed) or 'none'}",

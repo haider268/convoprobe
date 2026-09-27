@@ -35,7 +35,7 @@ def test_demo_scenario_loads() -> None:
     assert scenario.name == "toy-support"
     assert len(scenario.personas) == 4
     assert len(scenario.concrete_personas()) == 3
-    assert len(scenario.rubric) == 5
+    assert len(scenario.rubric) == 6
     regex = scenario.rubric[4]
     assert isinstance(regex, RegexAbsentItem)
     assert regex.pattern == r"\bguarantee(d)?\b"

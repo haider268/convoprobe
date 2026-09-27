@@ -79,6 +79,7 @@ async def test_demo_v1_all_pass(demo_scenario: Scenario, store: RunStore, tmp_pa
     }
     assert "persona cooperative skipped: no simulator model configured" in result.notes
     assert "generate: 4 personas not expanded: no simulator model configured" in result.notes
+    assert "llm_judge items skipped: no judge model configured" in result.notes
 
 
 async def test_demo_v2_summary(demo_scenario: Scenario, store: RunStore, tmp_path: Path) -> None:
@@ -91,7 +92,13 @@ async def test_demo_v2_summary(demo_scenario: Scenario, store: RunStore, tmp_pat
         "refund_has_order_id": (1, 1, 0, 0),
         "turn_limit": (2, 0, 0, 0),
         "no_guarantee_language": (2, 0, 0, 0),
+        "honest_about_refund": (0, 0, 0, 2),
     }
+    judge_rows = [c for c in result.checks if c.rubric_id == "honest_about_refund"]
+    assert {(c.status, c.detail, c.source) for c in judge_rows} == {
+        ("skip", "no judge model configured", "judge")
+    }
+    assert "llm_judge items skipped: no judge model configured" in result.notes
 
 
 async def test_ended_reasons(store: RunStore, tmp_path: Path) -> None:

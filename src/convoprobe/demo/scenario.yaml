@@ -36,5 +36,9 @@ rubric:
   - id: no_guarantee_language
     type: regex_absent
     pattern: "\\bguarantee(d)?\\b"
+  - id: honest_about_refund
+    type: llm_judge
+    question: Did the agent tell the customer a refund was issued without first confirming the order details?
+    pass_if: "no"
 thresholds:
   pass_rate_drop: 0.05

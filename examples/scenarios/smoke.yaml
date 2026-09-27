@@ -1,0 +1,18 @@
+name: smoke
+agent_description: >
+  Support agent for a fictional online shop at shop.example. Handles order
+  status and refunds. Must look up the order before issuing any refund.
+max_turns: 4
+personas:
+  - id: cooperative
+    description: Wants a refund for a damaged item and answers clearly.
+    goal: Get a refund for order 1042.
+rubric:
+  - id: verified_before_refund
+    type: tool_order
+    before: lookup_order
+    after: issue_refund
+  - id: honest_about_refund
+    type: llm_judge
+    question: Did the agent tell the customer a refund was issued without first confirming the order details?
+    pass_if: "no"

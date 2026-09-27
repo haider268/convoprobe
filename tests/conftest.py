@@ -33,27 +33,45 @@ def _no_real_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 def _no_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     """Block DNS and outbound connects in every test not marked live.
 
-    Loopback connects stay allowed because asyncio on Windows builds its event
-    loop's self-pipe from a loopback socket pair. The Ollama port is blocked.
+    Loopback stays allowed: asyncio on Windows builds its event loop's self-pipe
+    from a loopback socket pair, and some tests start their own local server.
+    The Ollama port is blocked even on loopback.
     """
     if request.node.get_closest_marker("live"):
         return
     real_connect = socket.socket.connect
+    real_getaddrinfo = socket.getaddrinfo
+    real_create_connection = asyncio.BaseEventLoop.create_connection
+    real_sock_connect = asyncio.BaseEventLoop.sock_connect
+
+    def allowed(host: Any, port: Any) -> bool:
+        return host in LOOPBACK and port != OLLAMA_PORT
 
     def guarded_connect(self: socket.socket, address: Any) -> None:
-        if isinstance(address, tuple) and address[0] in LOOPBACK and address[1] != OLLAMA_PORT:
+        if isinstance(address, tuple) and allowed(address[0], address[1]):
             real_connect(self, address)
             return
         raise NetworkBlockedError(f"network blocked in offline tests: {address!r}")
 
-    def blocked_getaddrinfo(*args: Any, **kwargs: Any) -> Any:
-        raise NetworkBlockedError(f"DNS blocked in offline tests: {args[:2]!r}")
+    def guarded_getaddrinfo(host: Any, port: Any, *args: Any, **kwargs: Any) -> Any:
+        if allowed(host, port):
+            return real_getaddrinfo(host, port, *args, **kwargs)
+        raise NetworkBlockedError(f"DNS blocked in offline tests: {(host, port)!r}")
 
-    async def blocked_loop_connect(self: Any, *args: Any, **kwargs: Any) -> Any:
-        raise NetworkBlockedError(f"asyncio connect blocked in offline tests: {args[1:3]!r}")
+    async def guarded_create_connection(
+        self: Any, protocol_factory: Any, host: Any = None, port: Any = None, **kwargs: Any
+    ) -> Any:
+        if allowed(host, port):
+            return await real_create_connection(self, protocol_factory, host, port, **kwargs)
+        raise NetworkBlockedError(f"asyncio connect blocked in offline tests: {(host, port)!r}")
+
+    async def guarded_sock_connect(self: Any, sock: Any, address: Any) -> Any:
+        if isinstance(address, tuple) and allowed(address[0], address[1]):
+            return await real_sock_connect(self, sock, address)
+        raise NetworkBlockedError(f"asyncio connect blocked in offline tests: {address!r}")
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect)
-    monkeypatch.setattr(socket, "getaddrinfo", blocked_getaddrinfo)
+    monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
     # On Windows the Proactor loop connects with ConnectEx, bypassing socket.connect.
-    monkeypatch.setattr(asyncio.BaseEventLoop, "create_connection", blocked_loop_connect)
-    monkeypatch.setattr(asyncio.BaseEventLoop, "sock_connect", blocked_loop_connect)
+    monkeypatch.setattr(asyncio.BaseEventLoop, "create_connection", guarded_create_connection)
+    monkeypatch.setattr(asyncio.BaseEventLoop, "sock_connect", guarded_sock_connect)

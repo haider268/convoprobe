@@ -52,6 +52,7 @@ class Message(_Strict):
     text: str
     tool_calls: list[ToolCallRecord] = []
     latency_ms: float | None = None
+    metadata: dict[str, Any] = {}
 
 
 class Conversation(_Strict):

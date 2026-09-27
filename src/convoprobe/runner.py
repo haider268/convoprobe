@@ -237,6 +237,7 @@ async def _converse(
                         text=turn.text,
                         tool_calls=turn.tool_calls,
                         latency_ms=latency_ms,
+                        metadata=turn.metadata,
                     )
                 )
                 log.log(

@@ -6,6 +6,7 @@ Named datamodels.py, not models.py, because models/ holds the chat model factory
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Annotated, Any, Literal, Union
 
 from pydantic import (
@@ -281,3 +282,35 @@ class Scenario(_Strict):
     def concrete_personas(self) -> list[LLMPersona | ScriptedPersona]:
         """Personas with an id. Generate requests are left out."""
         return [p for p in self.personas if isinstance(p, LLMPersona | ScriptedPersona)]
+
+
+# Results
+
+ConversationStatus = Literal["pending", "done", "failed_transient", "failed", "skipped"]
+
+
+class RubricSummary(_Strict):
+    """Counts for one rubric item across all conversations in a run."""
+
+    rubric_id: str
+    passed: int
+    failed: int
+    errored: int
+    skipped: int
+    pass_rate: float | None
+
+
+class RunResult(_Strict):
+    """Everything a run produced. Written to results.json."""
+
+    run_id: str
+    scenario_name: str
+    adapter: str
+    started_at: datetime
+    finished_at: datetime | None
+    conversation_status: dict[str, ConversationStatus]
+    conversations: list[Conversation]
+    checks: list[CheckResult]
+    summary: list[RubricSummary]
+    overall_pass_rate: float | None
+    notes: list[str]

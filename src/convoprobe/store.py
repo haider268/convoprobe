@@ -129,6 +129,15 @@ class RunStore:
             raise ConvoprobeError(f"conversation {conversation_id} not found in run {run_id}")
         return str(row[0])
 
+    def conversation_statuses(self, run_id: str) -> dict[str, str]:
+        """Status of every conversation in a run, keyed by conversation id."""
+        rows = self._conn.execute(
+            "SELECT conversation_id, status FROM conversations WHERE run_id = ?"
+            " ORDER BY conversation_id",
+            (run_id,),
+        ).fetchall()
+        return {str(cid): str(status) for cid, status in rows}
+
     def conversation_attempts(self, run_id: str, conversation_id: str) -> int:
         row = self._conn.execute(
             "SELECT attempts FROM conversations WHERE run_id = ? AND conversation_id = ?",

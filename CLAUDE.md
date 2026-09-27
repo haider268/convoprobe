@@ -37,11 +37,13 @@ uv run mypy src
   because `models/` is the chat model factory.
 - `src/convoprobe/models/`: `provider:model` string to chat model, replay model.
 - `src/convoprobe/adapters/`: agent adapters (callable now, LangGraph and HTTP in M3).
-- `src/convoprobe/simulator/`, `scoring/`, `report/`: simulator, checks, reports.
+- `src/convoprobe/simulator/`, `scoring/`: simulator, checks.
+- `src/convoprobe/report/`: reports. JSON writer is `json_report.py`.
 - `src/convoprobe/demo/`: offline demo agent, scenario, cassette. Package data.
 - `store.py` SQLite state and cache, `runner.py` orchestration,
-  `scenario.py` YAML loading, `config.py` settings, `logging.py` JSONL logs,
+  `scenario.py` YAML loading, `config.py` settings, `jsonlog.py` JSONL logs,
   `cli.py` typer app.
+- No module may shadow a stdlib name (hence `jsonlog.py`, `json_report.py`).
 
 ## Contracts
 

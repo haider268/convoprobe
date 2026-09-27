@@ -143,7 +143,9 @@ async def _converse(
         await adapter.start(cid)
         try:
             for _ in range(scenario.max_turns):
-                text = await simulator.next_message(scenario, persona, conversation.messages)
+                text = await simulator.next_message(
+                    scenario, persona, conversation.messages, conversation_id=cid
+                )
                 if text is None:
                     stop = isinstance(persona, ScriptedPersona)
                     conversation.ended_reason = "script_end" if stop else "simulator_stop"

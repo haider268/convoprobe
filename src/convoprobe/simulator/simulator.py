@@ -17,6 +17,8 @@ class UserSimulator(Protocol):
         scenario: Scenario,
         persona: LLMPersona | ScriptedPersona,
         messages: list[Message],
+        *,
+        conversation_id: str,
     ) -> str | None:
         """Next user turn, or None to stop."""
 
@@ -29,6 +31,8 @@ class ScriptedSimulator:
         scenario: Scenario,
         persona: LLMPersona | ScriptedPersona,
         messages: list[Message],
+        *,
+        conversation_id: str,
     ) -> str | None:
         if not isinstance(persona, ScriptedPersona):
             raise ConvoprobeError(f"persona {persona.id} has no script")

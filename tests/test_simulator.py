@@ -23,7 +23,9 @@ async def test_scripted_sequence_then_none() -> None:
     persona = ScriptedPersona(id="s", script=["one", "two"])
     messages: list[Message] = []
     sent = []
-    while (text := await sim.next_message(SCENARIO, persona, messages)) is not None:
+    while (
+        text := await sim.next_message(SCENARIO, persona, messages, conversation_id="s-r0")
+    ) is not None:
         sent.append(text)
         messages.append(Message(role="user", text=text))
         messages.append(Message(role="agent", text="reply"))
@@ -33,7 +35,7 @@ async def test_scripted_sequence_then_none() -> None:
 async def test_llm_persona_raises() -> None:
     persona = LLMPersona(id="p", description="Pat Example", goal="ask")
     with pytest.raises(ConvoprobeError, match="persona p has no script"):
-        await ScriptedSimulator().next_message(SCENARIO, persona, [])
+        await ScriptedSimulator().next_message(SCENARIO, persona, [], conversation_id="p-r0")
 
 
 def test_is_user_simulator() -> None:

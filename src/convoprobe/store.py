@@ -7,6 +7,7 @@ failures are retried.
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -47,6 +48,9 @@ CREATE TABLE IF NOT EXISTS check_results (
 );
 """
 
+# CheckResult fields kept in check_results.extra_json.
+_EXTRA_FIELDS = {"source", "verdict", "score", "evidence"}
+
 
 def utc_now() -> str:
     """Current time as a UTC ISO 8601 string."""
@@ -63,6 +67,13 @@ class RunStore:
         self._conn.execute("PRAGMA foreign_keys=ON")
         with self._conn:
             self._conn.executescript(_SCHEMA)
+            self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns introduced after a database was created."""
+        columns = {row[1] for row in self._conn.execute("PRAGMA table_info(check_results)")}
+        if "extra_json" not in columns:
+            self._conn.execute("ALTER TABLE check_results ADD COLUMN extra_json TEXT")
 
     def __enter__(self) -> RunStore:
         return self
@@ -180,9 +191,20 @@ class RunStore:
                 (run_id, conversation_id),
             )
             self._conn.executemany(
-                "INSERT INTO check_results (run_id, conversation_id, rubric_id, status, detail)"
-                " VALUES (?, ?, ?, ?, ?)",
-                [(run_id, conversation_id, r.rubric_id, r.status, r.detail) for r in results],
+                "INSERT INTO check_results"
+                " (run_id, conversation_id, rubric_id, status, detail, extra_json)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        run_id,
+                        conversation_id,
+                        r.rubric_id,
+                        r.status,
+                        r.detail,
+                        r.model_dump_json(include=_EXTRA_FIELDS),
+                    )
+                    for r in results
+                ],
             )
 
     def load_conversations(self, run_id: str) -> list[tuple[Conversation | None, str, str | None]]:
@@ -199,17 +221,22 @@ class RunStore:
 
     def load_checks(self, run_id: str) -> list[CheckResult]:
         rows = self._conn.execute(
-            "SELECT c.conversation_id, c.rubric_id, c.status, c.detail, v.persona_id"
-            " FROM check_results c JOIN conversations v"
+            "SELECT c.conversation_id, c.rubric_id, c.status, c.detail, v.persona_id,"
+            " c.extra_json FROM check_results c JOIN conversations v"
             " ON v.run_id = c.run_id AND v.conversation_id = c.conversation_id"
             " WHERE c.run_id = ? ORDER BY c.conversation_id, c.rubric_id",
             (run_id,),
         ).fetchall()
         return [
             CheckResult(
-                conversation_id=cid, rubric_id=rid, status=status, detail=detail, persona_id=pid
+                conversation_id=cid,
+                rubric_id=rid,
+                status=status,
+                detail=detail,
+                persona_id=pid,
+                **(json.loads(extra) if extra else {}),
             )
-            for cid, rid, status, detail, pid in rows
+            for cid, rid, status, detail, pid, extra in rows
         ]
 
     def finish_run(self, run_id: str) -> None:

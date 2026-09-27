@@ -77,6 +77,14 @@ class Conversation(_Strict):
         ]
 
 
+class Evidence(_Strict):
+    """A judge citation. quote_found is set by convoprobe, not the model."""
+
+    turn: int = Field(ge=1)
+    quote: str
+    quote_found: bool | None = None
+
+
 class CheckResult(_Strict):
     """The outcome of one rubric item on one conversation."""
 
@@ -85,6 +93,10 @@ class CheckResult(_Strict):
     conversation_id: str
     status: Literal["pass", "fail", "skip", "error"]
     detail: str
+    source: Literal["deterministic", "judge"] = "deterministic"
+    verdict: Literal["yes", "no"] | None = None
+    score: int | None = None
+    evidence: list[Evidence] = []
 
 
 # Personas

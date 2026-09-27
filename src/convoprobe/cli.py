@@ -19,6 +19,8 @@ from rich.table import Table
 from convoprobe import __version__
 from convoprobe import demo as demo_package
 from convoprobe.adapters import CallableAdapter, load_adapter
+from convoprobe.baseline import Comparison, baseline_from, load_baseline, save_baseline
+from convoprobe.baseline import compare as compare_runs
 from convoprobe.config import HOSTED_JUDGE, HOSTED_SIMULATOR, Settings, load_settings
 from convoprobe.datamodels import RunResult, Scenario
 from convoprobe.demo import CASSETTE_NAME, DEMO_JUDGE, DEMO_SIMULATOR
@@ -51,6 +53,7 @@ DEMO_REPLAY_HEADER = (
 DEFAULT_DB = Path(".convoprobe/convoprobe.db")
 RECORD_DB = Path(".convoprobe/demo-record.db")
 REPORT_FILE = "report.html"
+DEFAULT_BASELINE = Path(".convoprobe/baseline.json")
 SIMULATOR_TEMPERATURE = 0.7
 JUDGE_TEMPERATURE = 0.0
 
@@ -222,6 +225,132 @@ def report(
         target = out if out is not None else results_file(results).parent / REPORT_FILE
         path = write_html(result, target)
         console.print(f"html: {path}", markup=False, soft_wrap=True)
+
+
+baseline_app = typer.Typer(help="Save the pass rates that compare checks against.")
+app.add_typer(baseline_app, name="baseline")
+
+_STATUS_TEXT = {
+    "ok": "OK",
+    "regression": "REGRESSION",
+    "improved": "IMPROVED",
+    "new": "NEW",
+    "missing": "MISSING",
+}
+
+
+def format_points(delta: float | None) -> str:
+    """A change in percentage points: "-100 pts", "+12.5 pts", or "-"."""
+    if delta is None:
+        return "-"
+    rounded = round(delta, 1)
+    if rounded == 0:
+        return "0 pts"
+    if rounded == int(rounded):
+        return f"{int(rounded):+d} pts"
+    return f"{rounded:+.1f} pts"
+
+
+def _threshold_text(threshold: float) -> str:
+    return f"{threshold * 100:g}"
+
+
+@baseline_app.command("save")
+def baseline_save(
+    results: Annotated[
+        Path, typer.Argument(metavar="RESULTS", help="A run folder or its results.json.")
+    ],
+    path: Annotated[Path, typer.Option(help="Where to write the baseline.")] = DEFAULT_BASELINE,
+) -> None:
+    """Save a run's pass rates as the baseline."""
+    try:
+        result = load_results(results)
+    except ConvoprobeError as exc:
+        raise _fail(str(exc)) from None
+    baseline = baseline_from(result, result.pass_rate_drop)
+    save_baseline(baseline, path)
+    typer.echo(f"baseline saved: {path} (run {result.run_id}, {len(baseline.rubric)} rubric items)")
+
+
+@app.command()
+def compare(
+    results: Annotated[
+        Path, typer.Argument(metavar="RESULTS", help="A run folder or its results.json.")
+    ],
+    baseline: Annotated[Path, typer.Option(help="Baseline file.")] = DEFAULT_BASELINE,
+    threshold: Annotated[
+        float | None,
+        typer.Option(help="Allowed pass rate drop, 0 to 1. Default: from the baseline."),
+    ] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the comparison as JSON.")] = False,
+) -> None:
+    """Compare a run with the baseline. Exit 0 no regression, 1 regression, 2 error."""
+    if threshold is not None and not 0 <= threshold <= 1:
+        raise _fail("--threshold must be between 0 and 1")
+    try:
+        saved = load_baseline(baseline)
+        result = load_results(results)
+    except ConvoprobeError as exc:
+        raise _fail(str(exc)) from None
+    comparison = compare_runs(saved, result, threshold)
+    if as_json:
+        typer.echo(comparison.model_dump_json(indent=2))
+        raise typer.Exit(code=1 if comparison.regressed else 0)
+    _print_comparison_report(comparison)
+    raise typer.Exit(code=1 if comparison.regressed else 0)
+
+
+def _print_comparison_report(comparison: Comparison) -> None:
+    console = Console()
+    table = Table()
+    for column in ("rubric", "baseline", "current", "change", "status"):
+        table.add_column(column, justify="left" if column in ("rubric", "status") else "right")
+    for row in comparison.rubric:
+        table.add_row(
+            row.rubric_id,
+            format_rate(row.baseline),
+            format_rate(row.current),
+            format_points(row.delta_points),
+            _STATUS_TEXT[row.status],
+        )
+    console.print(table)
+    if comparison.scenario_changed:
+        typer.echo("note: the scenario changed since the baseline was saved")
+    t = _threshold_text(comparison.threshold)
+    failed: list[str] = []
+    for row in comparison.rubric:
+        if row.status == "regression":
+            failed.append(row.rubric_id)
+            typer.echo(
+                f"{row.rubric_id}: {format_rate(row.baseline)} -> {format_rate(row.current)}"
+                f" ({format_points(row.delta_points)}, threshold {t} pts)"
+            )
+            if row.persona_drops:
+                drops = ", ".join(
+                    f"{pid} {format_rate(old)} -> {format_rate(new)}"
+                    for pid, old, new in row.persona_drops
+                )
+                typer.echo(f"  personas: {drops}")
+        elif row.status == "missing":
+            failed.append(row.rubric_id)
+            typer.echo(f"{row.rubric_id}: no results in this run")
+    if comparison.overall_regressed:
+        failed.append("overall")
+        delta = format_points(
+            None
+            if comparison.overall_baseline is None or comparison.overall_current is None
+            else 100 * (comparison.overall_current - comparison.overall_baseline)
+        )
+        typer.echo(
+            f"overall: {format_rate(comparison.overall_baseline)} ->"
+            f" {format_rate(comparison.overall_current)} ({delta})"
+        )
+    if failed:
+        typer.echo(
+            f"REGRESSION: {len(failed)} item(s) dropped more than {t} pts: {', '.join(failed)}"
+        )
+    else:
+        typer.echo("no regression")
 
 
 cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)

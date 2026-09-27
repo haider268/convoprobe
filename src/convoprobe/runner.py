@@ -171,6 +171,7 @@ async def run_scenario(
         models=models,
         llm_usage=usage,
         scenario_hash=store.scenario_hash(scenario),
+        pass_rate_drop=scenario.thresholds.pass_rate_drop,
     )
     write_results(result, out_dir)
     return result

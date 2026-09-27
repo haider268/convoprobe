@@ -347,3 +347,4 @@ class RunResult(_Strict):
     llm_usage: list[LLMUsage] = []
     # Defaults keep results.json files from older versions loadable.
     scenario_hash: str = ""
+    pass_rate_drop: float = 0.05

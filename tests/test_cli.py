@@ -5,8 +5,10 @@ from __future__ import annotations
 from importlib.resources import as_file, files
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
+from convoprobe import cli
 from convoprobe.cli import DEMO_HEADER, app
 
 runner = CliRunner()
@@ -17,7 +19,9 @@ def demo_scenario_path() -> str:
         return str(path)
 
 
-def test_demo() -> None:
+def test_demo(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The no-cassette path: scripted personas only. The cassette path is in test_cli_llm.py.
+    monkeypatch.setattr(cli, "_demo_cassette", lambda: None)
     result = runner.invoke(app, ["demo"])
     assert result.exit_code == 0, result.output
     assert DEMO_HEADER == "DEMO: toy shop agent, scripted personas, no model calls, no API keys."

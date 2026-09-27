@@ -300,6 +300,17 @@ class RubricSummary(_Strict):
     pass_rate: float | None
 
 
+class LLMUsage(_Strict):
+    """Call counts and token totals for one model spec."""
+
+    spec: str
+    calls: int = 0
+    cache_hits: int = 0
+    retries: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
 class RunResult(_Strict):
     """Everything a run produced. Written to results.json."""
 

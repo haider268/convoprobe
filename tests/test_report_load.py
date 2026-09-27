@@ -45,6 +45,7 @@ def test_old_style_results_get_defaults(tmp_path: Path) -> None:
     assert result.pass_rate_drop == 0.05
     assert result.mode == ""
     assert result.rubric == []
+    assert result.agent_description == ""
 
 
 def test_missing(tmp_path: Path) -> None:

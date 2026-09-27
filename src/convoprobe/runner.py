@@ -175,6 +175,7 @@ async def run_scenario(
         pass_rate_drop=scenario.thresholds.pass_rate_drop,
         mode=mode,
         rubric=list(scenario.rubric),
+        agent_description=scenario.agent_description,
     )
     write_results(result, out_dir)
     return result

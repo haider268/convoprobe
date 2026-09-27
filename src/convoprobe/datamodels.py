@@ -350,3 +350,4 @@ class RunResult(_Strict):
     pass_rate_drop: float = 0.05
     mode: str = ""
     rubric: list[RubricItem] = []
+    agent_description: str = ""

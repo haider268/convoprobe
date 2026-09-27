@@ -21,6 +21,7 @@ from convoprobe import demo as demo_package
 from convoprobe.adapters import CallableAdapter, load_adapter
 from convoprobe.baseline import Comparison, baseline_from, load_baseline, save_baseline
 from convoprobe.baseline import compare as compare_runs
+from convoprobe.calibration import prepare as prepare_calibration
 from convoprobe.config import HOSTED_JUDGE, HOSTED_SIMULATOR, Settings, load_settings
 from convoprobe.datamodels import RunResult, Scenario
 from convoprobe.demo import CASSETTE_NAME, DEMO_JUDGE, DEMO_SIMULATOR
@@ -353,6 +354,31 @@ def _print_comparison_report(comparison: Comparison) -> None:
         )
     else:
         typer.echo("no regression")
+
+
+calibrate_app = typer.Typer(help="Build judge calibration sets.", no_args_is_help=True)
+app.add_typer(calibrate_app, name="calibrate")
+
+
+@calibrate_app.command("prepare")
+def calibrate_prepare(
+    sources: Annotated[
+        list[Path],
+        typer.Option("--from", help="A run folder or results.json. Repeatable, in order."),
+    ],
+    out: Annotated[Path, typer.Option(help="Folder for the labelling set.")],
+    max_items: Annotated[
+        int, typer.Option("--max", min=1, help="Most conversations to include.")
+    ] = 30,
+) -> None:
+    """Build a blind labelling set: transcripts and empty labels, no judge verdicts."""
+    try:
+        prepared = prepare_calibration(sources, out, max_items)
+    except ConvoprobeError as exc:
+        raise _fail(str(exc)) from None
+    for source, count in prepared.per_source:
+        typer.echo(f"{source}: {count} item(s)")
+    typer.echo(f"prepared {prepared.items} item(s), {prepared.labels} label(s) to fill: {out}")
 
 
 cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)

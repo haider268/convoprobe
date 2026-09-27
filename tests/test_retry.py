@@ -174,10 +174,28 @@ async def test_request_too_large_not_retried() -> None:
     assert str(info.value) == (
         "groq:x: request is larger than the provider's per-minute token limit."
         " Use a model with a higher limit or a shorter scenario."
+        " Provider said: Error code: 429 - Request too large for model on tokens per minute"
     )
     assert info.value.__cause__ is original
     assert calls["n"] == 1
     assert rec.sleeps == []
+
+
+async def test_request_too_large_message_redacts_org_and_truncates() -> None:
+    text = (
+        "Error code: 429 - Request too large for model `qwen/qwen3.8-27b` in organization"
+        " `org_01abc9xyz` service tier `on_demand` on output tokens per minute (OTPM):"
+        " Limit 1000, Requested 4096. " + "x" * 400
+    )
+    fn, _calls = failing([TooLarge(text)])
+    with pytest.raises(ConvoprobeError) as info:
+        await call_with_retry(fn, policy=RetryPolicy(), label="groq:q", sleep=Recorder().sleep)
+    message = str(info.value)
+    assert "org_01abc9xyz" not in message
+    assert "`org_REDACTED`" in message
+    assert "Limit 1000, Requested 4096." in message
+    said = message.split(" Provider said: ", 1)[1]
+    assert said == text[:300].replace("org_01abc9xyz", "org_REDACTED")
 
 
 async def test_ordinary_429_still_retried() -> None:

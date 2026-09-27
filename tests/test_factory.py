@@ -63,6 +63,39 @@ def test_groq_model() -> None:
     assert chat.groq_api_key.get_secret_value() == "test-key"  # type: ignore[attr-defined]
 
 
+def test_groq_max_tokens_only_when_set() -> None:
+    pytest.importorskip("langchain_groq")
+    unset = make_chat_model(
+        "groq:openai/gpt-oss-20b", settings(groq_api_key=SecretStr("k")), temperature=0.7
+    )
+    assert unset.max_tokens is None  # type: ignore[attr-defined]
+    s = settings(groq_api_key=SecretStr("k"), groq_max_tokens=800)
+    chat = make_chat_model("groq:qwen/qwen3.8-27b", s, temperature=0.7)
+    assert chat.max_tokens == 800  # type: ignore[attr-defined]
+
+
+def test_groq_max_tokens_passed_to_constructor(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[dict[str, object]] = []
+
+    def fake_class(provider: str) -> object:
+        return lambda **kwargs: seen.append(kwargs)
+
+    monkeypatch.setattr(factory, "_chat_class", fake_class)
+    make_chat_model("groq:m", settings(groq_api_key=SecretStr("k")), temperature=0.0)
+    make_chat_model(
+        "groq:m", settings(groq_api_key=SecretStr("k"), groq_max_tokens=200), temperature=0.0
+    )
+    assert "max_tokens" not in seen[0]
+    assert seen[1]["max_tokens"] == 200
+
+
+def test_groq_max_tokens_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GROQ_MAX_TOKENS", "800")
+    assert settings().groq_max_tokens == 800
+    monkeypatch.setenv("GROQ_MAX_TOKENS", "")
+    assert settings().groq_max_tokens is None
+
+
 def test_gemini_model() -> None:
     pytest.importorskip("langchain_google_genai")
     s = settings(google_api_key=SecretStr("test-key"))

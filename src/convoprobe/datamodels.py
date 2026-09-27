@@ -348,3 +348,5 @@ class RunResult(_Strict):
     # Defaults keep results.json files from older versions loadable.
     scenario_hash: str = ""
     pass_rate_drop: float = 0.05
+    mode: str = ""
+    rubric: list[RubricItem] = []

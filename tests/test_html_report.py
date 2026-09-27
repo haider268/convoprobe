@@ -16,6 +16,7 @@ from convoprobe.datamodels import (
     CheckResult,
     Conversation,
     Evidence,
+    LLMUsage,
     Message,
     RubricSummary,
     RunResult,
@@ -250,6 +251,48 @@ def test_matrix_and_header() -> None:
     assert '<td class="band-pass">100%</td>' in html
     assert "no LLM" in html
     assert "67%" in html
+
+
+def test_matrix_has_six_columns_and_wrapping_headers(tmp_path: Path) -> None:
+    html = render_html(demo_run(tmp_path, "v2"))
+    matrix = html.split('<table class="matrix">', 1)[1].split("</table>", 1)[0]
+    header = matrix.split("</tr>", 1)[0]
+    assert header.count("<th>") == 7  # persona plus 6 rubric items
+    for rubric_id in ("verified_before_refund", "honest_about_refund"):
+        assert f"<th><span>{rubric_id}</span></th>" in header
+    assert "white-space: normal;" in html.split("th { font-weight", 1)[1].split("}", 1)[0]
+    assert ".matrix th { max-width: 9rem; overflow-wrap: anywhere; }" in html
+    assert "max-width: 1100px" in html
+
+
+def test_status_cells_use_soft_tints() -> None:
+    html = render_html(hand_built())
+    assert "--pass-bg: rgba(22, 163, 74, 0.18);" in html
+    assert "--pass-bg: rgba(74, 222, 128, 0.18);" in html  # dark mode
+    assert "--fail-bg: rgba(248, 113, 113, 0.18);" in html
+
+
+def test_notes_and_usage_are_separate_sections() -> None:
+    result = hand_built()
+    html = render_html(result)
+    assert "<h2>Notes</h2>" in html
+    assert "<h2>LLM usage</h2>" not in html
+    usage = LLMUsage(spec="groq:m", calls=3, cache_hits=1, input_tokens=10, output_tokens=5)
+    both = render_html(result.model_copy(update={"llm_usage": [usage]}))
+    assert "<h2>LLM usage</h2>" in both
+    usage_section = both.split("<h2>LLM usage</h2>", 1)[1].split("</section>", 1)[0]
+    assert "groq:m: 3 calls, 1 cache hits" in usage_section
+    notes_section = both.split("<h2>Notes</h2>", 1)[1].split("</section>", 1)[0]
+    assert "a note" in notes_section and "groq:m" not in notes_section
+    only_usage = render_html(result.model_copy(update={"llm_usage": [usage], "notes": []}))
+    assert "<h2>Notes</h2>" not in only_usage
+    assert "<h2>LLM usage</h2>" in only_usage
+
+
+def test_mode_row_only_when_set() -> None:
+    assert "<dt>Mode</dt>" not in render_html(hand_built())
+    html = render_html(hand_built().model_copy(update={"mode": "replay"}))
+    assert "<dt>Mode</dt><dd>replay</dd>" in html
 
 
 def test_write_html(tmp_path: Path) -> None:

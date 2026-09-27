@@ -17,7 +17,9 @@ htmlcov/
 # Secrets
 .env
 
-# convoprobe state and output
+# convoprobe state and output. A baseline meant to be committed is saved
+# elsewhere with --path (for example ci/baseline.json).
+.convoprobe/
 .convoprobe/cache*
 .convoprobe/*.db
 .convoprobe/*.db-*

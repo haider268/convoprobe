@@ -61,12 +61,16 @@ def make_chat_model(spec: str, settings: Settings, temperature: float) -> BaseCh
             raise ConvoprobeError(
                 "GROQ_API_KEY is not set. Put it in .env (never in code or chat)."
             )
+        extra: dict[str, Any] = {}
+        if settings.groq_max_tokens is not None:
+            extra["max_tokens"] = settings.groq_max_tokens
         chat = _chat_class("groq")(
             model=model,
             api_key=settings.groq_api_key.get_secret_value(),
             temperature=temperature,
             max_retries=0,
             timeout=settings.llm_timeout_s,
+            **extra,
         )
         return chat
     if settings.google_api_key is None:

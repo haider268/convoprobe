@@ -154,6 +154,7 @@ def run(
             store = stack.enter_context(RunStore(db))
             sim_client: LLMClient | None = None
             judge_client: LLMClient | None = None
+            mode = "no-llm" if no_llm else "replay" if replay is not None else "live"
             if no_llm:
                 typer.echo("mode: no-llm")
             else:
@@ -192,6 +193,7 @@ def run(
                     llm_simulator=LLMSimulator(sim_client) if sim_client else None,
                     judge_client=judge_client,
                     persona_client=sim_client,
+                    mode=mode,
                 )
             )
     except (ScenarioError, ConvoprobeError) as exc:
@@ -443,6 +445,7 @@ async def _demo_run(
     out_dir: Path,
     clients: tuple[LLMClient, LLMClient] | None,
     run_id: str | None = None,
+    mode: str = "",
 ) -> RunResult:
     fn = toy_agent_v1 if version == "v1" else toy_agent_v2
     sim, judge = clients if clients else (None, None)
@@ -456,6 +459,7 @@ async def _demo_run(
         llm_simulator=LLMSimulator(sim) if sim else None,
         judge_client=judge,
         persona_client=sim,
+        mode=mode,
     )
 
 
@@ -499,7 +503,10 @@ def demo(
                 if cassette is not None
                 else None
             )
-            results.append(asyncio.run(_demo_run(scenario, version, store, out_dir, clients)))
+            mode = "replay" if cassette is not None else "no-llm"
+            results.append(
+                asyncio.run(_demo_run(scenario, version, store, out_dir, clients, mode=mode))
+            )
     v1, v2 = results
     print_run_report(v1, console, "v1 (correct agent)")
     print_run_report(v2, console, "v2 (prompt change with a bug)")
@@ -537,7 +544,9 @@ def _demo_record(out: Path | None) -> None:
             run_id = f"demo-{version}"
             clients = _demo_clients(settings, cache, replay_only=False, run_id=run_id)
             results.append(
-                asyncio.run(_demo_run(scenario, version, store, out_dir, clients, run_id))
+                asyncio.run(
+                    _demo_run(scenario, version, store, out_dir, clients, run_id, mode="live")
+                )
             )
         failures = [
             (cid, next((c.error for c in result.conversations if c.id == cid), None))

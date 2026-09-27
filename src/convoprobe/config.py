@@ -36,10 +36,14 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 60.0
 
     # Groq free tier as last verified 28 Sep 2026 from response headers: about 30
-    # requests/min, 8,000 tokens/min, 1,000 requests/day per model.
+    # requests/min, 8,000 tokens/min, 1,000 requests/day per model. These values
+    # apply to each Groq model separately.
     groq_rpm: float = 30.0
     groq_tpm: float | None = 8000.0
     groq_concurrency: int = 2
+    # qwen/qwen3.8-27b rejects max_tokens >= 1000 (output limit 1,000 tokens/min).
+    # Set GROQ_MAX_TOKENS=800 when using it.
+    groq_max_tokens: int | None = None
 
     # Conservative default. Verify the current Gemini free tier before relying on it.
     gemini_rpm: float = 10.0

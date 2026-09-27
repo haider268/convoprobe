@@ -15,13 +15,14 @@
   --user-border: #93c5fd;
   --agent-bg: #f5f5f4;
   --agent-border: #a8a29e;
-  --pass-bg: #dcfce7;
-  --pass-text: #14532d;
-  --fail-bg: #fee2e2;
-  --fail-text: #7f1d1d;
-  --mixed-bg: #fef3c7;
-  --mixed-text: #713f12;
-  --skip-bg: #e7e5e4;
+  /* Status cells: the status colour as text on a soft tint of itself (about 18%). */
+  --pass-bg: rgba(22, 163, 74, 0.18);
+  --pass-text: #166534;
+  --fail-bg: rgba(220, 38, 38, 0.18);
+  --fail-text: #991b1b;
+  --mixed-bg: rgba(202, 138, 4, 0.18);
+  --mixed-text: #854d0e;
+  --skip-bg: rgba(120, 113, 108, 0.18);
   --skip-text: #44403c;
   --cited: #dc2626;
   --code-bg: #f5f5f4;
@@ -38,14 +39,14 @@
     --user-border: #3b82f6;
     --agent-bg: #292524;
     --agent-border: #78716c;
-    --pass-bg: #14532d;
-    --pass-text: #dcfce7;
-    --fail-bg: #7f1d1d;
-    --fail-text: #fee2e2;
-    --mixed-bg: #713f12;
-    --mixed-text: #fef3c7;
-    --skip-bg: #44403c;
-    --skip-text: #e7e5e4;
+    --pass-bg: rgba(74, 222, 128, 0.18);
+    --pass-text: #4ade80;
+    --fail-bg: rgba(248, 113, 113, 0.18);
+    --fail-text: #f87171;
+    --mixed-bg: rgba(250, 204, 21, 0.18);
+    --mixed-text: #facc15;
+    --skip-bg: rgba(168, 162, 158, 0.18);
+    --skip-text: #d6d3d1;
     --cited: #f87171;
     --code-bg: #0c0a09;
     --link: #93c5fd;
@@ -58,7 +59,7 @@ body {
   color: var(--text);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-main { max-width: 1000px; margin: 0 auto; padding: 16px; overflow-wrap: anywhere; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; overflow-wrap: anywhere; }
 code { overflow-wrap: anywhere; word-break: break-word; }
 section, details, .body, .turn, .msg, li { min-width: 0; }
 h1 { font-size: 1.5rem; margin: 0 0 4px; }
@@ -74,7 +75,9 @@ a { color: var(--link); }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
-th { font-weight: 600; background: var(--agent-bg); }
+th { font-weight: 600; background: var(--agent-bg); white-space: normal; vertical-align: bottom; }
+.matrix th { max-width: 9rem; overflow-wrap: anywhere; }
+.matrix th > span { display: inline-block; max-width: 9rem; overflow-wrap: anywhere; }
 .band-pass { background: var(--pass-bg); color: var(--pass-text); }
 .band-fail { background: var(--fail-bg); color: var(--fail-text); }
 .band-mixed { background: var(--mixed-bg); color: var(--mixed-text); }
@@ -106,6 +109,8 @@ footer { margin: 32px 0 16px; color: var(--muted); font-size: 0.85rem; }
 <dl class="meta">
 <dt>Run</dt><dd>{{ result.run_id }}</dd>
 <dt>Adapter</dt><dd>{{ result.adapter }}</dd>
+{% if result.mode %}<dt>Mode</dt><dd>{{ result.mode }}</dd>
+{% endif %}
 <dt>Models</dt><dd>{{ models }}</dd>
 <dt>Started</dt><dd>{{ started }}</dd>
 <dt>Finished</dt><dd>{{ finished }}</dd>
@@ -134,9 +139,9 @@ footer { margin: 32px 0 16px; color: var(--muted); font-size: 0.85rem; }
 <section>
 <h2>Pass rate by persona</h2>
 <div class="scroll">
-<table>
+<table class="matrix">
 <thead>
-<tr><th>Persona</th>{% for rubric_id in rubric_ids %}<th>{{ rubric_id }}</th>{% endfor %}</tr>
+<tr><th>Persona</th>{% for rubric_id in rubric_ids %}<th><span>{{ rubric_id }}</span></th>{% endfor %}</tr>
 </thead>
 <tbody>
 {% for row in matrix %}
@@ -148,13 +153,21 @@ footer { margin: 32px 0 16px; color: var(--muted); font-size: 0.85rem; }
 </section>
 {% endif %}
 
-{% if result.notes or usage %}
+{% if result.notes %}
 <section>
 <h2>Notes</h2>
 <ul class="plain">
 {% for note in result.notes %}<li>{{ note }}</li>
 {% endfor %}
-{% for line in usage %}<li class="small">LLM {{ line }}</li>
+</ul>
+</section>
+{% endif %}
+
+{% if usage %}
+<section>
+<h2>LLM usage</h2>
+<ul class="plain">
+{% for line in usage %}<li class="small">{{ line }}</li>
 {% endfor %}
 </ul>
 </section>

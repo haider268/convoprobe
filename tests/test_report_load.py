@@ -43,6 +43,8 @@ def test_old_style_results_get_defaults(tmp_path: Path) -> None:
     result = load_results(write(tmp_path / "run", OLD_STYLE))
     assert result.scenario_hash == ""
     assert result.pass_rate_drop == 0.05
+    assert result.mode == ""
+    assert result.rubric == []
 
 
 def test_missing(tmp_path: Path) -> None:

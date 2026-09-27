@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TypeVar
@@ -31,6 +32,8 @@ TRANSIENT_NAMES = {
     "RequestError",
 }
 
+ORG_ID = re.compile(r"org_[a-z0-9]+")
+
 VPN_MESSAGE = "Groq returned 403. This usually means a VPN is on. Turn the VPN off and rerun."
 
 
@@ -56,6 +59,11 @@ def _chain(exc: BaseException) -> list[BaseException]:
             if linked is not None:
                 stack.append(linked)
     return seen
+
+
+def provider_message(exc: BaseException) -> str:
+    """The first 300 characters of the provider's error, with org ids redacted."""
+    return ORG_ID.sub("org_REDACTED", str(exc)[:300])
 
 
 def is_too_large(exc: BaseException) -> bool:
@@ -104,6 +112,7 @@ async def call_with_retry(
                 raise ConvoprobeError(
                     f"{label}: request is larger than the provider's per-minute token limit."
                     " Use a model with a higher limit or a shorter scenario."
+                    f" Provider said: {provider_message(exc)}"
                 ) from exc
             if not is_transient(exc):
                 raise

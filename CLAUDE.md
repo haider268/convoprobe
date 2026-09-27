@@ -65,6 +65,8 @@ RESULTS is a run folder or its `results.json`.
   - rise greater than the threshold = improved; items only in the new run =
     new; neither gates. A changed scenario is noted, never gating alone.
 - Exit codes: 0 no regression, 1 regression, 2 usage or config error.
+- `.convoprobe/` is git-ignored. A baseline meant to be committed is saved
+  outside it with `--path` (for example `ci/baseline.json`).
 
 ## Adapters
 
@@ -109,7 +111,9 @@ RESULTS is a run folder or its `results.json`.
   `export_cassette(run_ids, path, meta)`; `JsonCassette` is read-only.
 - `retry.py`: 408/429/5xx, timeouts, connection errors retry with jittered
   backoff. Groq 403 = VPN. 429 "Request too large" is not retried.
-- `ratelimit.py`, `registry.py` (one limiter per provider), `preflight.py`.
+- `ratelimit.py`, `registry.py` (one limiter per Groq/Gemini model, since their
+  limits are per model; one shared Ollama limiter), `preflight.py`.
+  `GROQ_MAX_TOKENS` sets `max_tokens`; qwen3.8-27b needs it below 1000.
 
 ## Simulator, judge, personas
 

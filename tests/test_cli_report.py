@@ -172,6 +172,31 @@ def test_demo_out_writes_both_reports(tmp_path: Path, monkeypatch: pytest.Monkey
     assert result.output.rstrip().splitlines()[-1].startswith("v2 regressed on")
 
 
+def test_run_records_mode_and_rubric(tmp_path: Path) -> None:
+    result = load_results(run_agent(tmp_path, "v1"))
+    assert result.mode == "no-llm"
+    assert [item.id for item in result.rubric] == [
+        "verified_before_refund",
+        "no_refund_without_order",
+        "refund_has_order_id",
+        "turn_limit",
+        "no_guarantee_language",
+        "honest_about_refund",
+    ]
+
+
+@pytest.mark.parametrize("with_cassette", [True, False])
+def test_demo_records_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, with_cassette: bool
+) -> None:
+    if not with_cassette:
+        monkeypatch.setattr(cli, "_demo_cassette", lambda: None)
+    result = runner.invoke(app, ["demo", "--out", str(tmp_path / "demo")])
+    assert result.exit_code == 0, result.output
+    modes = {load_results(p.parent).mode for p in (tmp_path / "demo").glob("*/results.json")}
+    assert modes == {"replay" if with_cassette else "no-llm"}
+
+
 def test_format_points() -> None:
     assert format_points(-100.0) == "-100 pts"
     assert format_points(12.5) == "+12.5 pts"

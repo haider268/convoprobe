@@ -45,6 +45,36 @@ def test_same_provider_shares_limiter(cache: SqliteLLMCache) -> None:
     assert groq.limiter.tokens is not None and groq.limiter.tokens.capacity == 8000.0
 
 
+def test_limiters_per_model_for_groq_and_gemini(
+    cache: SqliteLLMCache, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(factory, "make_chat_model", lambda *args: FakeChatModel())
+    registry = LLMRegistry(settings(), cache)
+    small = registry.client("groq:openai/gpt-oss-20b", 0.7)
+    big = registry.client("groq:openai/gpt-oss-120b", 0.0)
+    small_again = registry.client("groq:openai/gpt-oss-20b", 0.0)
+    assert small.limiter is not big.limiter
+    assert small.limiter is small_again.limiter
+    for client in (small, big):
+        assert client.limiter is not None and client.limiter.tokens is not None
+        assert client.limiter.tokens.capacity == 8000.0
+    gem_a = registry.client("gemini:model-a", 0.0)
+    gem_b = registry.client("gemini:model-b", 0.0)
+    assert gem_a.limiter is not gem_b.limiter
+    assert registry.limiter("gemini:model-a") is gem_a.limiter
+
+
+def test_ollama_models_share_one_limiter(
+    cache: SqliteLLMCache, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(factory, "make_chat_model", lambda *args: FakeChatModel())
+    registry = LLMRegistry(settings(), cache)
+    sim = registry.client("ollama:qwen2.5:3b", 0.7)
+    judge = registry.client("ollama:llama3.2:3b", 0.0)
+    assert sim.limiter is judge.limiter
+    assert registry.limiter("ollama:other:1b") is sim.limiter
+
+
 def test_gemini_limiter_from_settings(cache: SqliteLLMCache) -> None:
     pytest.importorskip("langchain_google_genai")
     gemini = LLMRegistry(settings(), cache).client("gemini:some-model", 0.0)

@@ -408,8 +408,15 @@ def _fake_recording(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, fail_v2: bo
         return sim, judge
 
     async def fake_run(
-        scenario: Any, version: str, store: Any, out_dir: Path, pair: Any, run_id: Any = None
+        scenario: Any,
+        version: str,
+        store: Any,
+        out_dir: Path,
+        pair: Any,
+        run_id: Any = None,
+        mode: str = "",
     ) -> RunResult:
+        assert mode == "live"
         sim, _judge = pair
         sim.cache.put(f"key-{version}", sim.spec, "structured", {"data": {}})
         sim.cache.mark_used(run_id, f"key-{version}")

@@ -61,6 +61,7 @@ async def run_scenario(
     llm_simulator: UserSimulator | None = None,
     judge_client: LLMClient | None = None,
     persona_client: LLMClient | None = None,
+    mode: str = "",
 ) -> RunResult:
     """Run every persona x repeat, resume unfinished work, score, write results."""
     run_id = run_id or new_run_id()
@@ -172,6 +173,8 @@ async def run_scenario(
         llm_usage=usage,
         scenario_hash=store.scenario_hash(scenario),
         pass_rate_drop=scenario.thresholds.pass_rate_drop,
+        mode=mode,
+        rubric=list(scenario.rubric),
     )
     write_results(result, out_dir)
     return result

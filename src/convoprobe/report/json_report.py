@@ -25,7 +25,7 @@ def write_results(result: RunResult, out_dir: Path) -> Path:
 
 def print_run_report(result: RunResult, console: Console, title: str) -> None:
     """Rubric table, conversation counts, overall pass rate, and notes."""
-    console.print(title, markup=False)
+    console.print(title, markup=False, soft_wrap=True)
     table = Table()
     for column in ("rubric", "pass", "fail", "error", "skip", "rate"):
         table.add_column(column, justify="left" if column == "rubric" else "right")
@@ -42,8 +42,9 @@ def print_run_report(result: RunResult, console: Console, title: str) -> None:
     statuses = list(result.conversation_status.values())
     console.print(
         f"conversations: {statuses.count('done')} done, {statuses.count('failed')} failed,"
-        f" {statuses.count('failed_transient')} transient, {statuses.count('skipped')} skipped"
+        f" {statuses.count('failed_transient')} transient, {statuses.count('skipped')} skipped",
+        soft_wrap=True,
     )
-    console.print(f"overall pass rate: {format_rate(result.overall_pass_rate)}")
+    console.print(f"overall pass rate: {format_rate(result.overall_pass_rate)}", soft_wrap=True)
     for note in result.notes:
-        console.print(f"note: {note}", markup=False)
+        console.print(f"note: {note}", markup=False, soft_wrap=True)

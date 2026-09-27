@@ -177,6 +177,44 @@ def test_live_mode_blocked_network_is_a_clean_error(tmp_path: Path) -> None:
     assert "error: Ollama is not reachable" in result.output
 
 
+SMALL_JUDGE_NOTE = (
+    "note: judge ollama:llama3.2:3b is a small local model. In review testing a 3B local"
+    " judge gave wrong verdicts. Use --hosted or --replay for results you rely on."
+)
+
+
+def test_live_ollama_judge_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("langchain_ollama")
+
+    async def ok(base_url: str, models: list[str], transport: Any = None) -> None:
+        return None
+
+    monkeypatch.setattr(cli, "check_ollama", ok)
+    # Scripted persona and no judge item: the run makes no model call at all.
+    scripted = tmp_path / "scripted.yaml"
+    scripted.write_text(
+        "name: s\nagent_description: x\npersonas:\n  - id: s\n    script: ['hi']\n"
+        "rubric:\n  - id: t\n    type: max_turns\n    value: 3\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, run_args(tmp_path, str(scripted)))
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    assert lines[:3] == [
+        "mode: live",
+        "models: simulator ollama:qwen2.5:3b, judge ollama:llama3.2:3b",
+        SMALL_JUDGE_NOTE,
+    ]
+    assert lines.count(SMALL_JUDGE_NOTE) == 1
+
+
+def test_no_judge_warning_for_hosted_judge(capsys: pytest.CaptureFixture[str]) -> None:
+    cli._warn_small_judge("groq:openai/gpt-oss-120b")
+    assert capsys.readouterr().out == ""
+    cli._warn_small_judge("ollama:llama3.2:3b")
+    assert capsys.readouterr().out.strip() == SMALL_JUDGE_NOTE
+
+
 def test_hosted_without_key(tmp_path: Path) -> None:
     result = runner.invoke(app, run_args(tmp_path, demo_scenario_path(), "--hosted"))
     assert result.exit_code == 2
@@ -217,6 +255,8 @@ def test_replay_round_trip(tmp_path: Path, scenario_file: Path, cache: SqliteLLM
     lines = result.output.splitlines()
     assert lines[0] == f"mode: replay ({cassette})"
     assert lines[1] == "models: simulator ollama:fake-sim, judge ollama:fake-judge"
+    # Replay mode: the verdicts are recorded, so no small-judge warning.
+    assert not any("is a small local model" in line for line in lines)
     replayed = results(tmp_path)
     assert set(replayed.conversation_status.values()) == {"done"}
     judged = [c for c in replayed.checks if c.rubric_id == "honest_about_refund"]

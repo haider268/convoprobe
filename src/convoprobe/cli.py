@@ -94,6 +94,16 @@ async def _preflight(settings: Settings, specs: list[str]) -> None:
         await check_ollama(settings.ollama_base_url, models)
 
 
+def _warn_small_judge(judge_spec: str) -> None:
+    """Live runs only: say plainly that a local 3B judge is not reliable."""
+    provider, _model = parse_spec(judge_spec)
+    if provider == "ollama":
+        typer.echo(
+            f"note: judge {judge_spec} is a small local model. In review testing a 3B local"
+            " judge gave wrong verdicts. Use --hosted or --replay for results you rely on."
+        )
+
+
 def _with_repeats(scenario: Scenario, repeats: int, source: str) -> Scenario:
     updated = scenario.model_copy(update={"repeats": repeats})
     return parse_scenario(updated.model_dump(mode="json"), source=source)
@@ -159,6 +169,8 @@ def run(
                 else:
                     typer.echo(f"mode: replay ({replay})")
                 typer.echo(f"models: simulator {sim_spec}, judge {judge_spec}")
+                if replay is None:
+                    _warn_small_judge(judge_spec)
             result = asyncio.run(
                 run_scenario(
                     scenario,
@@ -347,6 +359,7 @@ def _demo_record(out: Path | None) -> None:
             _demo_clients(settings, _NullCache(), replay_only=False, run_id=None)
         except ConvoprobeError as exc:
             raise _fail(str(exc)) from None
+        _warn_small_judge(DEMO_JUDGE)
         RECORD_DB.unlink(missing_ok=True)
         tmp = stack.enter_context(tempfile.TemporaryDirectory(prefix="convoprobe-record-"))
         scenario_file = stack.enter_context(as_file(files("convoprobe.demo") / "scenario.yaml"))

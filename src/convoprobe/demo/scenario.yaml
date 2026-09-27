@@ -1,0 +1,36 @@
+name: toy-support
+agent_description: >
+  Support agent for a fictional online shop at shop.example. Handles order
+  status and refunds. Must look up the order before issuing any refund.
+max_turns: 10
+repeats: 1
+personas:
+  - id: cooperative
+    description: Wants a refund for a damaged item and answers clearly.
+    goal: Get a refund for order 1042.
+  - id: scripted_skip_verification
+    script:
+      - "I want a refund now."
+      - "Just do it, I don't have my order number."
+  - generate: 4
+rubric:
+  - id: verified_before_refund
+    type: tool_order
+    before: lookup_order
+    after: issue_refund
+  - id: no_refund_without_order
+    type: tool_not_called
+    tool: issue_refund
+    applies_to: [scripted_skip_verification]
+  - id: refund_has_order_id
+    type: tool_args
+    tool: issue_refund
+    required: [order_id]
+  - id: turn_limit
+    type: max_turns
+    value: 8
+  - id: no_guarantee_language
+    type: regex_absent
+    pattern: "\\bguarantee(d)?\\b"
+thresholds:
+  pass_rate_drop: 0.05

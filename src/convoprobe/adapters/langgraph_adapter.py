@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import builtins
 import json
+import uuid
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
@@ -92,7 +93,11 @@ class LangGraphAdapter:
         self._threads: dict[str, str] = {}
 
     async def start(self, conversation_id: str) -> None:
-        self._threads[conversation_id] = f"{self.thread_prefix}:{conversation_id}"
+        # A fresh thread per start. The checkpointer keeps old threads, so reusing
+        # "<prefix>:<id>" would continue a previous attempt's messages on a resumed
+        # run, or a previous run's when one adapter serves several runs.
+        suffix = uuid.uuid4().hex[:8]
+        self._threads[conversation_id] = f"{self.thread_prefix}:{conversation_id}:{suffix}"
 
     async def end(self, conversation_id: str) -> None:
         # Checkpoint data stays in the saver; only the mapping is dropped.

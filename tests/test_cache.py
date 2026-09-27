@@ -63,6 +63,21 @@ def test_cassette_replays_export(tmp_path: Path) -> None:
     cassette.mark_used("run-1", "k")
     with pytest.raises(ConvoprobeError, match="is read-only"):
         cassette.put("k", "ollama:m", "text", {"text": "new"})
+    assert cassette.meta == {}
+    assert "meta" not in json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_cassette_meta_round_trip(tmp_path: Path) -> None:
+    path = tmp_path / "cassette.json"
+    meta = {"recorded_at": "2026-09-28", "simulator": "groq:a", "judge": "groq:b"}
+    with SqliteLLMCache(tmp_path / "cache.db") as cache:
+        cache.put("k", "groq:a", "text", {"text": "hi"})
+        cache.mark_used("run-1", "k")
+        assert cache.export_cassette(["run-1"], path, meta=meta) == 1
+    assert json.loads(path.read_text(encoding="utf-8"))["meta"] == meta
+    cassette = JsonCassette(path)
+    assert cassette.meta == meta
+    assert cassette.get("k") == {"text": "hi"}
 
 
 @pytest.mark.parametrize("payload", [{"format": 2, "entries": {}}, {"entries": {}}, [1, 2]])

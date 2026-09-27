@@ -91,8 +91,14 @@ class SqliteLLMCache:
                 (run_id, key),
             )
 
-    def export_cassette(self, run_ids: list[str], out_path: Path) -> int:
-        """Write every cached entry used by these runs to a cassette. Returns the count."""
+    def export_cassette(
+        self, run_ids: list[str], out_path: Path, meta: dict[str, str] | None = None
+    ) -> int:
+        """Write every cached entry used by these runs to a cassette. Returns the count.
+
+        meta (for example the recording date and models) is written as a top-level
+        "meta" object when given.
+        """
         marks = ",".join("?" for _ in run_ids)
         rows = (
             self._conn.execute(
@@ -109,7 +115,9 @@ class SqliteLLMCache:
         }
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"format": CASSETTE_FORMAT, "entries": entries}
+        payload: dict[str, Any] = {"format": CASSETTE_FORMAT, "entries": entries}
+        if meta is not None:
+            payload["meta"] = meta
         text = json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
         out_path.write_text(text, encoding="utf-8")
         return len(entries)
@@ -128,6 +136,7 @@ class JsonCassette:
                 f" (expected {CASSETTE_FORMAT})"
             )
         self._entries: dict[str, dict[str, Any]] = data.get("entries", {})
+        self.meta: dict[str, str] = {str(k): str(v) for k, v in data.get("meta", {}).items()}
 
     def get(self, key: str) -> dict[str, Any] | None:
         entry = self._entries.get(key)

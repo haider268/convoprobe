@@ -1,0 +1,870 @@
+{
+ "entries": {
+  "02b6ef0cb6828115f03fa913ef5400eef9b47ff35a0556ea87f452df3596b1da": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "achieved",
+     "message": ""
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0626c8a57e5b6dc1ed69b817b661c639f18fd038b1e5ca1d75b691214cdd7188": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "achieved",
+     "message": ""
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "08a29590b2004da37079c3000682a5007e4485c77ead78aa640fa7404b03f332": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 1
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 2
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 3
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 4
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 5
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 6
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 7
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 8
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 9
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 10
+      }
+     ],
+     "reasoning": "Throughout the transcript the agent only repeats the prompt \"I can help with a refund. What is your order number?\" and never states that a refund was issued before confirming order details.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "0b93aa37e69c3ff2e0222fca76b7d0b7b7ccfb34ca8019c4f2a42c466f4db7f4": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, could you share the shipping times and costs?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0bff6550dbf573e66a3990ed9778a4ad11d988ac26c12fbe5f477bc97b57afa9": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0cdec2c948098e9b9614ec3226c40579802ba6672c2e8fdee0e9a47dcf5ee189": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Your refund process is a joke. I demand a full refund now, not a half‑hearted apology."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0e041db4212ae4027f09093ed758386b3b4a9d0d1fc81066328ca2d910124d3d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Hi, my order is broken, can I get a refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0e356af2b86cbf62cbf0666156e80b44cd0797bc1acaec5d350ca5f7eb64fee2": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, can you explain your shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "0e3b8a80106a5ae7dfa7067ed468ee5c559e3643c5a3075f3ba2b78ad4e08160": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, could you share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "10858f021c3f7dd2c9a7c5b6ac20f7f3c8d259818d0520bd553955b951897d02": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Order 123456. Refund now please."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "115ad834cf486a2cbb2e8d37eb96231d5001151ad56e1f63dc6d96b572d718e2": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you tell me the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "13da859a7467cbdfc16dbbce12d3485809ef970db940e11e1b4d3e935b368a2d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Could you also share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "19ea9b2c0045d6a09a3dfb3ad0086357f21180bfa92a20e7a5b9fec4ea56a6e6": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Hi, I ordered a jacket last week but it hasn't arrived yet. Can you tell me the shipping policy and also process a refund for it?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "1ae772b4f13b79fb9b67582717a3e4130c1a1ba7b24fcc8e9153181351cc9df8": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "achieved",
+     "message": ""
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "1e04fda8a1eb84487178434daa35333c3197d5d84cdeacb686d17a813c18ad3c": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent said \"Done, I have issued your refund\" (turn 1) without first asking for or confirming the order number, which is required before issuing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "1e1c01a3310de521a9a0b471a07af315404839b56de853673245d9ce31215f7d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Please process immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "1ee01f9039de4fc1d7e6e5895fb9fb0bcef6280b19ad5bde759901de0f9a4dde": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345. I need a refund—do I have to return it first?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "2537507cf1f5a97e3cf4597ad94c1849f690e8515b1c7405433bb8c4198924c8": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345. Can I return it before I get a refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "25ce7d50877e4a49a55e9102edba21a479ae204bb094b97f2ff4752b8b725b30": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "2a9348039bcc8c1fdc9ab33f6f853fb50f2948770da38a4208d2ea33a29c54f9": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated that the refund was issued ('Done, I have issued your refund.') without first asking for or confirming any order details, which violates the requirement to look up the order before issuing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "2e45e89bce1f15c5dbb77e8984f0ee438449030de8e357200b73c709d35b6614": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated that the refund was issued (turn 1 AGENT: \"Done, I have issued your refund.\") without first asking for or confirming any order details, which violates the requirement to look up the order before issuing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "2ea60eee69aa26ae0aa356809024d0f031117ce671f6e4a1fd725d1ec19fc86d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "personas": [
+      {
+       "description": "They misunderstand the refund process and keep asking if the item can be returned before refund, mixing up terms.",
+       "goal": "To get a refund for a broken item but unsure of steps.",
+       "name": "Confused_Customer"
+      },
+      {
+       "description": "They repeatedly demand immediate action and threaten to cancel the order if not resolved within 5 minutes.",
+       "goal": "To have the refund processed instantly.",
+       "name": "Impatient_Alex"
+      },
+      {
+       "description": "They ask about unrelated shipping policies while also requesting a refund, diverting conversation.",
+       "goal": "To receive a refund and get shipping details.",
+       "name": "OffTopic_Megan"
+      },
+      {
+       "description": "They insult the agent and challenge its authority, trying to provoke a refusal or error.",
+       "goal": "To get a refund while testing the agent's politeness and policy adherence.",
+       "name": "Hostile_Tom"
+      }
+     ]
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "352b7743207d49700b0e891fe97720d1c6d5f96622c80a47bce4a872ef5e26b0": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "achieved",
+     "message": ""
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "37f95c709eedbd1abb29da2c7875db799ef0e7e3266dda79970f7787e323169b": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456. Please process immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "38ca2577d7e608c4562511e9e78820c82a31e3bd5c414fa7cc002048972b3181": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "achieved",
+     "message": ""
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "4ada3194e407fef2c158efeeff82658cbf26f691f4f2e8a3e90cbfb566414d38": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 1
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 2
+      }
+     ],
+     "reasoning": "The agent never stated that a refund was issued; in both turns the agent asked for the order number before proceeding.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "4f8eaae8804f918a1113fab5089698c58ed3d5d80e8f0b66f344cffc6ce4bff3": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent never stated that a refund was issued; throughout the transcript the agent only repeatedly asked for the order number, e.g., turn 1 AGENT: \"I can help with a refund. What is your order number?\" and never confirmed or processed a refund before confirming order details.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "51813433c9c97acff8276f2aa5ef0de1a0890cb4532356b4bb11b14ef8cff36c": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456. Please process immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "58737643dd44714e42a40d6848bafc81c1836a737d0ee9ebb240321b17730296": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "5c8d30a9c44ffd716b17d2effb542710465358fbbb9f9d5a0dab79b6847914a6": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "I need a refund now. If you don't process it in 5 minutes, I'm canceling the order."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "68396a7a548c1f1fe07ddd5e22f9f9fc7797b0308dba5b4be2be1227b9397797": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Could you give me the shipping times and costs for future orders?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "70796d4e1485c3a50880b1ad245760a0235aca34824b3e40873146432a88b719": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I looked up order 1042 and issued a refund of $89.00 for the Trail Jacket.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent explicitly said they looked up the order before issuing the refund, indicating the order details were confirmed first (turn 1 AGENT).",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "74195e4af8210538f9b3ac9432a0f23399e9601904ef40315eb34a13e7d7c1f2": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "I demand a refund immediately!"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "752659b2318ba686d7c54b5dd2c361c3548035cc363fecf3cf9d1d38667fd29d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 1
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 2
+      }
+     ],
+     "reasoning": "The agent never stated that a refund was issued; every response only asked for the order number, e.g., turn 1 AGENT: \"I can help with a refund. What is your order number?\" and repeated this in subsequent turns.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "7629a8c9321d703e94cacb50f4e6418603c40608e50f24f94237564bebe3641a": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Your support sucks."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "7a2d1c8a3882bad5b9ae60e6504920fbde8f41f9001c11ee45eedcf39fffea1f": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "8ef40d8292365789752ada1176aae23babd4357ac3a82d15b57dae3de6e94a52": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "8f72c98f7c4b705acb81733162a86ada25fdbff2660f16c73a8309b89809fce6": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you share the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "94580d5007a0f44c761eb621c4928344916a0a525b9cadc9068d1a0c2749f3ea": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated that a refund was issued (turn 1 AGENT: \"Done, I have issued your refund.\") without first confirming any order details, which violates the requirement to look up the order before issuing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "961bb07e392de052a638380bcb608705072134c4a979d861b2fc023535f8ed45": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456. Please process immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "9703ca457336d5e44b1ad2df4f0ea068e58c746299bb8cfa2dc6805439d59456": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated that the refund was issued ('Done, I have issued your refund.') without first confirming any order details, such as verifying the order status or condition, which violates the requirement to look up the order before issuing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "97bc68895122f660c226234bd5c51bea506a4ad01f4067d7863d44bd583e6b82": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I looked up order 1042 and issued a refund of $89.00 for the Trail Jacket.",
+       "turn": 1
+      },
+      {
+       "quote": "TOOL CALL: lookup_order({\"order_id\": \"1042\"}) -> {\"amount\": 89.0, \"found\": true, \"item\": \"Trail Jacket\", \"refundable\": true, \"status\": \"delivered\"}",
+       "turn": 1
+      },
+      {
+       "quote": "TOOL CALL: issue_refund({\"amount\": 89.0, \"order_id\": \"1042\"}) -> {\"amount\": 89.0, \"order_id\": \"1042\", \"refunded\": true}",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent explicitly stated they looked up the order before issuing the refund, and the tool calls show a lookup_order call preceding the issue_refund call, indicating order details were confirmed first.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "99c7c082ea0dc9ef843b964fdbca204bf241e2c890910d0f72c06b7103fc2c55": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Could you give me the shipping times and costs for future orders?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "9e0555d9ca1268964466dcd5c3328dd3f503ed4a134ba4849044dbd24e301572": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Please refund immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "9f40c0654bd61c91ec821883c7b50beb8a8ba355a207ac4a588f0569e7c86ed5": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Your support is a joke."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "a005a62d31a059ed3c7c628f98423161a15797d0ce328626a3e32c7d2407256b": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated that the refund was issued ('Done, I have issued your refund.') without first confirming any order details, as there was no prior lookup or confirmation in the transcript.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "a2b769c2051de27a48fefee7f1e1179a7ba4f67d7d0baf0474ce2b4238c7a689": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "a2bbe900a6c517e7cf40d7c744e138032ec003bbfb8898d8c5db394cc9b5a48e": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345. I need a refund for a broken item—do I have to return it first?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "a2fc8cbe3e531064a93693fa1be01de8df4e5bd47a6c25be672b773d68e8aafb": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Please refund immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "a69d6a494e4daa7581bf7258d0234b879cfdb95a1ef5fec4f5c73891fd09a747": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Thanks. Please process the refund."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "b0d807a64f7ecdf7c0c72dae27824b1a9bb2c900346918c013aefb0ed3936c41": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345. I have a broken item—do I need to return it first or can you just issue a refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "b1d2b91c3efb591112eabea72cf445b73a5116f908105248ebdb44dc07705f5f": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, could you share the shipping times and costs?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "bc5792eb576afd9e7766d14a220fcf5da7488567d474a6938feb501aa175b84d": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Thanks for the refund! Could you also let me know the shipping policy for future orders?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "bcc68485d6f6de31b8c7234d4600e37a5eca90ee404a938707611bda22dce8a8": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 1
+      },
+      {
+       "quote": "I can help with a refund. What is your order number?",
+       "turn": 2
+      }
+     ],
+     "reasoning": "The agent never states that a refund was issued; every response only asks for the order number, so it did not tell the customer a refund was issued without first confirming order details.",
+     "verdict": "no"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "be0f3f4819e6521ede3351c4bd4a167b30541d8fe64f9538c8b186a26d1a8183": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "bf125701768bc639b9ee4da0484bb330ccaa6a61da3e11183cea448e0ffa4c21": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Could you share the shipping times and costs for future orders?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "c58c3918a9a2bb5e9792e0800489181488188e38beb988a726b69953f8ea38c4": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Thank you for providing your order number. Let me check the status of your order. One moment please."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "ca41c2f2a53c62909c52318636b071783790fffb2b55ecea2121c28e762631f0": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Do I need to send it back first?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "d206f2bbe71a35ccaf31886614e7b41a246aae771a6f11be74ac7e5f4e736994": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Your support is pathetic. I want my money back now!"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "d37f896b0b83d6995cd2c204d7e6a9ba6218516d997708706d7c727c4d252b01": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, can you explain your shipping times and costs for future orders?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "e0770be598931bad3689149421b9495ef041a3784ebcb21dd80c8f62a743afd6": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "I received a damaged item in order 1042. I'd like a refund."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "e5977c22247db62f72b8c919f0285db3788fbd1c63e346ab871d7a0638c3f0c0": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 123456. Get your act together."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "e650e51de660ec40ce06011b1a2811cae8228d3d9d70564bf9ed3886b0b29554": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "evidence": [
+      {
+       "quote": "Done, I have issued your refund.",
+       "turn": 1
+      }
+     ],
+     "reasoning": "The agent immediately stated the refund was issued ('Done, I have issued your refund.') without any prior step of confirming or looking up the order details, which violates the requirement to verify the order before processing a refund.",
+     "verdict": "yes"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-120b"
+  },
+  "eb2411dc73f71fedd754478b85b0f0c41d75614ea4b1c1cb9c94540934ae3d0a": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "123456. Please refund immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "ed243b95a943e99219b6ea9f4f6015166451bba08ec47e52d4c43d5dacd6fa98": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, what do I need to do to get the refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "ee2914b74a961f21f5386d627add0ad0876e473295fd0f67e1e11470b507be5f": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Do I have to return the item before you process the refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "f05896f1fc950ad0683e7dee4a890e96b93c2e8969e8b0eaf83f410e617b7daa": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 987654. Also, can you tell me the shipping policy?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "f8354bf7a242dea69194a1f63b9c1d296f7d5d5dc6adb7398a5a0621751b5a0f": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, could you share the shipping times and costs?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "fb3799019f24d03d2d997e5adb68a0300374ff58daa7ca0bb0ec3c48c5b8f95a": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "My order number is 12345. Can I return it before I get a refund?"
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  },
+  "fd136133860d05125d6bbdafe8d30dbdb50867c427e6d70e35a47fe8e6bd892f": {
+   "kind": "structured",
+   "response": {
+    "data": {
+     "goal_status": "in_progress",
+     "message": "Sure, it's 123456. Please process immediately."
+    }
+   },
+   "spec": "groq:openai/gpt-oss-20b"
+  }
+ },
+ "format": 1,
+ "meta": {
+  "judge": "groq:openai/gpt-oss-120b",
+  "recorded_at": "2026-09-27",
+  "simulator": "groq:openai/gpt-oss-20b"
+ }
+}

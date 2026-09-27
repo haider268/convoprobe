@@ -60,9 +60,17 @@ def _existing(scenario: Scenario) -> str:
 
 
 async def generate_personas(
-    scenario: Scenario, n: int, client: LLMClient, *, salt: str
+    scenario: Scenario,
+    n: int,
+    client: LLMClient,
+    *,
+    salt: str,
+    taken: set[str] | None = None,
 ) -> tuple[list[LLMPersona], list[str]]:
-    """Ask the model for n personas. Returns (personas, notes). Never raises on bad output."""
+    """Ask the model for n personas. Returns (personas, notes). Never raises on bad output.
+
+    Ids never clash with scenario persona ids or with ids already in taken.
+    """
     prompt = PERSONA_PROMPT.format(
         n=n, agent_description=scenario.agent_description.strip(), existing=_existing(scenario)
     )
@@ -78,7 +86,7 @@ async def generate_personas(
     if result is None:
         return [], [f"persona generation failed: {reason}"]
 
-    taken = {p.id for p in scenario.concrete_personas()}
+    taken = {p.id for p in scenario.concrete_personas()} | (taken or set())
     personas: list[LLMPersona] = []
     for generated in result.personas[:n]:
         try:

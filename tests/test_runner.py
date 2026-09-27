@@ -78,9 +78,7 @@ async def test_demo_v1_all_pass(demo_scenario: Scenario, store: RunStore, tmp_pa
         "scripted_skip_verification-r0": "done",
     }
     assert "persona cooperative skipped: no simulator model configured" in result.notes
-    assert (
-        "generate: 4 personas not expanded (needs a simulator model, added later)" in result.notes
-    )
+    assert "generate: 4 personas not expanded: no simulator model configured" in result.notes
 
 
 async def test_demo_v2_summary(demo_scenario: Scenario, store: RunStore, tmp_path: Path) -> None:

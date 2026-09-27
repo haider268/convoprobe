@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 
-from convoprobe.datamodels import CheckResult, Conversation, Scenario
+from convoprobe.datamodels import CheckResult, Conversation, LLMPersona, Scenario
 from convoprobe.errors import ConvoprobeError
 
 _SCHEMA = """
@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS conversations (
     error TEXT,
     updated_at TEXT NOT NULL,
     PRIMARY KEY(run_id, conversation_id)
+);
+CREATE TABLE IF NOT EXISTS generated_personas (
+    run_id TEXT NOT NULL,
+    entry_index INTEGER NOT NULL,
+    personas_json TEXT NOT NULL,
+    PRIMARY KEY(run_id, entry_index)
 );
 CREATE TABLE IF NOT EXISTS check_results (
     run_id TEXT NOT NULL,
@@ -238,6 +244,28 @@ class RunStore:
             )
             for cid, rid, status, detail, pid, extra in rows
         ]
+
+    def save_generated_personas(
+        self, run_id: str, entry_index: int, personas: list[LLMPersona]
+    ) -> None:
+        """Keep generated personas so a resumed run reuses them."""
+        data = json.dumps([p.model_dump(mode="json") for p in personas])
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO generated_personas (run_id, entry_index, personas_json)"
+                " VALUES (?, ?, ?)",
+                (run_id, entry_index, data),
+            )
+
+    def load_generated_personas(self, run_id: str, entry_index: int) -> list[LLMPersona] | None:
+        """Personas saved for this generate entry, or None if never generated."""
+        row = self._conn.execute(
+            "SELECT personas_json FROM generated_personas WHERE run_id = ? AND entry_index = ?",
+            (run_id, entry_index),
+        ).fetchone()
+        if row is None:
+            return None
+        return [LLMPersona.model_validate(p) for p in json.loads(row[0])]
 
     def finish_run(self, run_id: str) -> None:
         with self._conn:

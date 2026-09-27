@@ -11,10 +11,13 @@ from typing import cast
 
 from convoprobe.adapters.base import AgentAdapter
 from convoprobe.datamodels import (
+    CheckResult,
     Conversation,
     ConversationStatus,
     GeneratePersonas,
+    LLMJudgeItem,
     LLMPersona,
+    LLMUsage,
     Message,
     RunResult,
     Scenario,
@@ -22,14 +25,19 @@ from convoprobe.datamodels import (
 )
 from convoprobe.errors import TransientError
 from convoprobe.jsonlog import JsonlLogger
+from convoprobe.models.client import LLMClient, ReplayMissError
 from convoprobe.report.json_report import write_results
 from convoprobe.scoring.deterministic import run_deterministic_checks
+from convoprobe.scoring.judge import run_judge_checks
+from convoprobe.simulator.personas import generate_personas
 from convoprobe.simulator.simulator import ScriptedSimulator, UserSimulator
 from convoprobe.store import RunStore
 from convoprobe.summary import summarize
 
 NO_SIMULATOR = "no simulator model configured"
 RUNNABLE = {"pending", "failed_transient"}
+
+Persona = LLMPersona | ScriptedPersona
 
 
 def new_run_id() -> str:
@@ -47,6 +55,8 @@ async def run_scenario(
     run_id: str | None = None,
     concurrency: int = 4,
     llm_simulator: UserSimulator | None = None,
+    judge_client: LLMClient | None = None,
+    persona_client: LLMClient | None = None,
 ) -> RunResult:
     """Run every persona x repeat, resume unfinished work, score, write results."""
     run_id = run_id or new_run_id()
@@ -59,15 +69,36 @@ async def run_scenario(
     with JsonlLogger(out_dir / run_id / "log.jsonl", run_id) as log:
         log.log("run_started", resumed=resumed, scenario=scenario.name, adapter=adapter_label)
 
-        for entry in scenario.personas:
-            if isinstance(entry, GeneratePersonas):
-                notes.append(
-                    f"generate: {entry.generate} personas not expanded"
-                    " (needs a simulator model, added later)"
-                )
+        if judge_client is None and any(isinstance(i, LLMJudgeItem) for i in scenario.rubric):
+            notes.append("llm_judge items skipped: no judge model configured")
 
-        work: list[tuple[LLMPersona | ScriptedPersona, int, str]] = []
-        for persona in scenario.concrete_personas():
+        personas: list[Persona] = list(scenario.concrete_personas())
+        taken = {p.id for p in personas}
+        for index, entry in enumerate(scenario.personas):
+            if not isinstance(entry, GeneratePersonas):
+                continue
+            generated = store.load_generated_personas(run_id, index)
+            if generated is None and persona_client is None:
+                notes.append(f"generate: {entry.generate} personas not expanded: {NO_SIMULATOR}")
+                continue
+            if generated is None:
+                assert persona_client is not None
+                salt = f"personas:{store.scenario_hash(scenario)}:{index}"
+                generated, generation_notes = await generate_personas(
+                    scenario, entry.generate, persona_client, salt=salt, taken=taken
+                )
+                notes.extend(generation_notes)
+                store.save_generated_personas(run_id, index, generated)
+                log.log(
+                    "personas_generated",
+                    entry_index=index,
+                    persona_ids=[p.id for p in generated],
+                )
+            taken.update(p.id for p in generated)
+            personas.extend(generated)
+
+        work: list[tuple[Persona, int, str]] = []
+        for persona in personas:
             if isinstance(persona, LLMPersona) and llm_simulator is None:
                 notes.append(f"persona {persona.id} skipped: {NO_SIMULATOR}")
             for repeat_index in range(scenario.repeats):
@@ -75,11 +106,14 @@ async def run_scenario(
                 store.ensure_conversation(run_id, cid, persona.id, repeat_index)
                 work.append((persona, repeat_index, cid))
 
-        async def run_one(
-            persona: LLMPersona | ScriptedPersona, repeat_index: int, cid: str
-        ) -> None:
+        async def run_one(persona: Persona, repeat_index: int, cid: str) -> None:
             status = store.conversation_status(run_id, cid)
-            if status not in RUNNABLE:
+            rerun_skipped = (
+                status == "skipped"
+                and isinstance(persona, LLMPersona)
+                and llm_simulator is not None
+            )
+            if status not in RUNNABLE and not rerun_skipped:
                 return
             if isinstance(persona, ScriptedPersona):
                 simulator: UserSimulator = scripted
@@ -94,7 +128,16 @@ async def run_scenario(
                 return
             async with semaphore:
                 await _converse(
-                    scenario, adapter, simulator, persona, repeat_index, cid, run_id, store, log
+                    scenario,
+                    adapter,
+                    simulator,
+                    persona,
+                    repeat_index,
+                    cid,
+                    run_id,
+                    store,
+                    log,
+                    judge_client,
                 )
 
         await asyncio.gather(*(run_one(p, r, c) for p, r, c in work))
@@ -105,7 +148,8 @@ async def run_scenario(
     started_at, finished_at = store.run_times(run_id)
     conversations = [c for c, _status, _error in store.load_conversations(run_id) if c]
     checks = store.load_checks(run_id)
-    summary, overall = summarize(scenario.rubric, checks)
+    summary, overall = summarize(scenario.rubric, checks, conversations)
+    models, usage = _models_and_usage(llm_simulator, judge_client, persona_client)
     result = RunResult(
         run_id=run_id,
         scenario_name=scenario.name,
@@ -120,25 +164,51 @@ async def run_scenario(
         summary=summary,
         overall_pass_rate=overall,
         notes=notes,
+        models=models,
+        llm_usage=usage,
     )
     write_results(result, out_dir)
     return result
+
+
+def _models_and_usage(
+    llm_simulator: UserSimulator | None,
+    judge_client: LLMClient | None,
+    persona_client: LLMClient | None,
+) -> tuple[dict[str, str], list[LLMUsage]]:
+    """Model specs and usage of the distinct LLM clients. Empty when none were given."""
+    sim_client = getattr(llm_simulator, "client", None)
+    sim_client = sim_client if isinstance(sim_client, LLMClient) else None
+    clients: list[LLMClient] = []
+    for client in (sim_client, judge_client, persona_client):
+        if client is not None and all(client is not c for c in clients):
+            clients.append(client)
+    if llm_simulator is None and not clients:
+        return {}, []
+    models = {
+        "simulator": sim_client.spec if sim_client else "none",
+        "judge": judge_client.spec if judge_client else "none",
+    }
+    return models, [c.usage for c in clients]
 
 
 async def _converse(
     scenario: Scenario,
     adapter: AgentAdapter,
     simulator: UserSimulator,
-    persona: LLMPersona | ScriptedPersona,
+    persona: Persona,
     repeat_index: int,
     cid: str,
     run_id: str,
     store: RunStore,
     log: JsonlLogger,
+    judge_client: LLMClient | None,
 ) -> None:
-    """One conversation: talk, save, score. Transient errors leave it retryable."""
+    """One conversation: talk, score, save. Transient errors leave it retryable."""
     conversation = Conversation(id=cid, persona_id=persona.id, repeat_index=repeat_index)
     log.log("conversation_started", conversation_id=cid, persona_id=persona.id)
+    status: ConversationStatus = "done"
+    error: str | None = None
     try:
         await adapter.start(cid)
         try:
@@ -174,18 +244,49 @@ async def _converse(
         finally:
             await adapter.end(cid)
     except TransientError as exc:
-        conversation.error = str(exc)
-        store.save_conversation(run_id, conversation, "failed_transient", str(exc))
-        log.log("conversation_failed", conversation_id=cid, error=str(exc), transient=True)
+        _fail(store, log, run_id, conversation, "failed_transient", str(exc))
         return
     except Exception as exc:
+        status = "failed"
         error = f"{type(exc).__name__}: {exc}"
         conversation.ended_reason = "agent_error"
         conversation.error = error
-        store.save_conversation(run_id, conversation, "failed", error)
-        store.save_checks(run_id, cid, run_deterministic_checks(scenario.rubric, conversation))
-        log.log("conversation_failed", conversation_id=cid, error=error, transient=False)
+
+    checks: list[CheckResult] = run_deterministic_checks(scenario.rubric, conversation)
+    try:
+        checks += await run_judge_checks(scenario.rubric, conversation, scenario, judge_client)
+    except TransientError as exc:
+        _fail(store, log, run_id, conversation, "failed_transient", f"judge: {exc}")
         return
-    store.save_conversation(run_id, conversation, "done")
-    store.save_checks(run_id, cid, run_deterministic_checks(scenario.rubric, conversation))
-    log.log("conversation_finished", conversation_id=cid, ended_reason=conversation.ended_reason)
+    except ReplayMissError as exc:
+        _fail(store, log, run_id, conversation, "failed", f"replay: {exc}")
+        return
+
+    store.save_conversation(run_id, conversation, status, error)
+    store.save_checks(run_id, cid, checks)
+    if status == "done":
+        log.log(
+            "conversation_finished", conversation_id=cid, ended_reason=conversation.ended_reason
+        )
+    else:
+        log.log("conversation_failed", conversation_id=cid, error=error, transient=False)
+
+
+def _fail(
+    store: RunStore,
+    log: JsonlLogger,
+    run_id: str,
+    conversation: Conversation,
+    status: ConversationStatus,
+    error: str,
+) -> None:
+    """Save a failed conversation with no checks."""
+    conversation.error = error
+    store.save_conversation(run_id, conversation, status, error)
+    store.save_checks(run_id, conversation.id, [])
+    log.log(
+        "conversation_failed",
+        conversation_id=conversation.id,
+        error=error,
+        transient=status == "failed_transient",
+    )

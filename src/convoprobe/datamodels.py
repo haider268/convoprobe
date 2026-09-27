@@ -310,6 +310,8 @@ class RubricSummary(_Strict):
     errored: int
     skipped: int
     pass_rate: float | None
+    pass_rate_stdev: float | None = None
+    persona_rates: dict[str, float | None] = {}
 
 
 class LLMUsage(_Strict):
@@ -337,3 +339,5 @@ class RunResult(_Strict):
     summary: list[RubricSummary]
     overall_pass_rate: float | None
     notes: list[str]
+    models: dict[str, str] = {}
+    llm_usage: list[LLMUsage] = []

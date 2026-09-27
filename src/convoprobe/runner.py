@@ -170,6 +170,7 @@ async def run_scenario(
         notes=notes,
         models=models,
         llm_usage=usage,
+        scenario_hash=store.scenario_hash(scenario),
     )
     write_results(result, out_dir)
     return result

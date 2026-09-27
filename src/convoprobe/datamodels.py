@@ -345,3 +345,5 @@ class RunResult(_Strict):
     notes: list[str]
     models: dict[str, str] = {}
     llm_usage: list[LLMUsage] = []
+    # Defaults keep results.json files from older versions loadable.
+    scenario_hash: str = ""

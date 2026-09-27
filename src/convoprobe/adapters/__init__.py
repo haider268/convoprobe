@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import importlib
 import inspect
 
@@ -34,6 +35,7 @@ def load_adapter(spec: str) -> AgentAdapter:
         raise AdapterLoadError(f"adapter {spec!r}: is a class, pass an instance or function")
     if isinstance(obj, AgentAdapter):
         return obj
-    if callable(obj):
+    # The adapters.callable submodule shadows the builtin name in this package.
+    if builtins.callable(obj):
         return CallableAdapter(obj)
     raise AdapterLoadError(f"adapter {spec!r}: is neither an AgentAdapter nor callable")

@@ -2,143 +2,134 @@
 
 convoprobe stress-tests conversational agents with simulated users. Scenario
 YAML plus an agent adapter in; scored conversations, reports, and a CI exit
-code out. Status: milestone 1 (core loop, scripted personas, offline demo).
+code out. Status: milestone 2 (LLM simulator, judge, personas, replay).
 
 ## Hard rules
 
-- Git identity is local to this repo: `haider268` /
-  `haider268@users.noreply.github.com`. The global identity is a company
-  account and must never appear in history. Check with
-  `git log --format="%an <%ae>" | sort -u` before any checkpoint.
-- Never `git remote add`, never `git push`, never upload to PyPI or TestPyPI.
-  Tags are local only. Pushes happen from the review lane on Haider's word.
+- Git identity is local: `haider268` / `haider268@users.noreply.github.com`.
+  The global identity is a company account and must never appear in history.
+  Check `git log --format="%an <%ae>" | sort -u` before any checkpoint.
+- Never `git remote add`, `git push`, or upload to PyPI/TestPyPI. Local tags only.
 - Never download anything over about 200 MB from the terminal (Ollama
   installer, `ollama pull`, torch, CUDA, Docker images). Stop and ask.
 - No system installs. Everything goes through uv into `.venv`.
-- Keys only in a git-ignored `.env`. Never print, log, or commit a key.
+- Keys only in the git-ignored `.env`. Never print, log, read out, or commit one.
 - Fake data only: fixture people are obviously fake, domains use `.example`.
 - Rules in code, language in the LLM. Anything decidable in Python is Python.
-- Write files with the file tool, not shell heredocs (a heredoc once
-  corrupted a regex backslash).
+- Write files with the file tool, not shell heredocs (one corrupted a regex).
+- Live runs: VPN OFF for Groq (it answers 403 to VPN and datacenter IPs).
 
 ## How to run
 
 uv lives at `C:\Users\maria\.local\bin\uv.exe` if it is not on PATH.
 
 ```
-uv sync --all-extras      # core + dev group + provider extras (as CI does)
-uv run convoprobe demo    # offline v1 vs v2 regression demo, zero keys
-uv run convoprobe run src/convoprobe/demo/scenario.yaml \
-    --adapter convoprobe.demo.toy_agent:toy_agent_v1
-uv run pytest             # offline tests with coverage, live tests excluded
-uv run pytest -m live -q --no-cov   # live tests: need Ollama running
-uv run ruff check
-uv run ruff format --check
-uv run mypy src
+uv sync --all-extras                 # as CI does
+uv run convoprobe demo               # replays the recorded cassette, no keys
+uv run convoprobe run SCENARIO --adapter module:attr [--no-llm | --hosted |
+    --replay CASSETTE | --simulator P:M --judge P:M] [--repeats N]
+uv run convoprobe personas generate SCENARIO -n 4 [--hosted | --replay C]
+uv run convoprobe cassette export --run-id ID [--run-id ID] --out FILE
+uv run convoprobe demo --record      # live, needs GROQ_API_KEY
+uv run pytest                        # offline; live tests excluded
+uv run pytest -m live -q --no-cov    # live: needs Ollama (and .env for Groq)
+uv run ruff check && uv run ruff format --check && uv run mypy src
 ```
 
-Live tests are marked `@pytest.mark.live` and live under `tests/live/`.
-`addopts` excludes them by default, so CI never touches a model or network.
-
-`run` options: `--out results`, `--run-id` (reuse to resume), `--db
-.convoprobe/convoprobe.db`, `--concurrency 4`. Exit 2 on scenario, adapter,
-or store errors.
+`run` modes: default is live with `CONVOPROBE_SIMULATOR` / `CONVOPROBE_JUDGE`
+(Ollama `qwen2.5:3b` / `llama3.2:3b`, preflighted with `check_ollama`).
+`--hosted` fills unset models with `HOSTED_SIMULATOR` (`groq:openai/gpt-oss-20b`)
+and `HOSTED_JUDGE` (`groq:openai/gpt-oss-120b`). The judge is the strongest
+available model, measured 4/4 valid outputs on 28 Sep 2026; qwen3.8-27b was 1/4.
+For real agents it should also be a different family from the agent under test.
+`--replay` reads a cassette, needs no key or provider package. `--no-llm` is the
+M1 behaviour and cannot be combined with model options. Simulator runs at
+temperature 0.7, judge at 0.0. The LLM cache shares the `--db` file.
+Exit 2 on scenario, adapter, model, key, Ollama, or store errors.
 
 ## Layout
 
-- `datamodels.py`: all Pydantic models. Not `models.py`, because `models/` is
-  the chat model package.
-- `config.py`: `Settings` from env / `.env`. Model specs, timeouts, and
-  per-provider rpm, tpm, concurrency. Blank env values count as unset.
-- `scenario.py`: `load_scenario` / `parse_scenario`, errors as
-  `<path>: <dotted.loc>: <msg>`.
-- `errors.py`: `ConvoprobeError`, `TransientError` (retried on next run),
-  `AdapterLoadError`.
-- `adapters/`: `AgentAdapter` protocol (`start`, `send`, `end`, all async),
-  `CallableAdapter` for `(history) -> str | AgentTurn` functions, sync or
-  async, and `load_adapter("module:attr")`. Classes are rejected, not built.
-- `simulator/simulator.py`: `UserSimulator` protocol, `ScriptedSimulator`.
-- `scoring/deterministic.py`: the 8 non-LLM checks, dispatched via `_CHECKS`.
-- `summary.py`: per-rubric counts and pass rates.
-- `store.py`: `RunStore`, SQLite.
-- `runner.py`: `run_scenario`.
-- `jsonlog.py`: `JsonlLogger`, one JSON object per line with `run_id`.
-- `report/json_report.py`: `write_results`, `print_run_report`.
-- `demo/`: `toy_agent.py` (v1 correct, v2 refunds without lookup) and
-  `scenario.yaml`. Package data, ships in the wheel.
-- `cli.py`: `version`, `run`, `demo`.
-- No module may shadow a stdlib name (hence `jsonlog.py`, `json_report.py`).
+- `datamodels.py`: all Pydantic models (`models/` is the LLM package).
+- `config.py`: `Settings`, `load_settings()` (reads `CONVOPROBE_ENV_FILE`,
+  default `.env`), `HOSTED_*`. Blank env values count as unset.
+- `scenario.py`, `errors.py`, `adapters/`, `store.py`, `runner.py`,
+  `summary.py`, `jsonlog.py`, `report/json_report.py`, `cli.py`.
+- `scoring/deterministic.py` (8 checks) and `scoring/judge.py`.
+- `simulator/`: `simulator.py` (protocol, scripted), `llm.py`, `personas.py`.
+- `demo/`: toy agent, `scenario.yaml`, `cassette.json`, `DEMO_*` constants.
+  All package data. No module may shadow a stdlib name.
 
-## models/ (LLM infrastructure)
+## LLM layer (models/)
 
-- `factory.py`: `parse_spec("ollama:qwen2.5:3b")` splits on the first colon.
-  `make_chat_model` builds ChatOllama, ChatGroq, or ChatGoogleGenerativeAI
-  with `max_retries=0` (convoprobe retries itself).
-- `client.py`: `LLMClient.text()` and `.structured(schema)`. Cache first; on
-  a miss, rate limit, retry, call, then store. Bad structured output raises
-  `StructuredOutputError` and is never cached.
-- `cache.py`: `SqliteLLMCache` (read-write, records which run used which key)
-  and `JsonCassette` (read-only). `export_cassette(run_ids, path)` writes a
-  cassette of every entry those runs used.
-- `retry.py`: transient = 408/429/5xx, timeouts, connection errors, found
-  anywhere in the cause/context chain. Backoff doubles with half jitter.
-  Groq 403 means a VPN is on and is reported as such, not retried.
-- `ratelimit.py`: `TokenBucket`, `ProviderLimiter`. Each retry attempt takes
-  its own slot, so backoff sleeps never hold a concurrency slot.
-- `registry.py`: `LLMRegistry` builds clients, one shared limiter per provider.
-- `preflight.py`: `check_ollama` names any model that still needs `ollama pull`.
+- `factory.py`: `parse_spec` splits on the first colon; `make_chat_model`
+  imports the provider lazily, `max_retries=0`.
+- `client.py`: `LLMClient.text()` / `.structured(schema)`. Cache key = spec,
+  method, kind, temperature, schema, messages, and a **salt** (conversation id
+  + turn) so repeats get independent samples. Bad structured output, or a
+  provider `tool_use_failed` / `json_validate_failed`, is `StructuredOutputError`
+  and never cached. `json_schema` method for Ollama and Groq.
+- `cache.py`: `SqliteLLMCache` records which run used which key;
+  `export_cassette(run_ids, path, meta)`; `JsonCassette` is read-only, `.meta`.
+- `retry.py`: 408/429/5xx, timeouts, connection errors retry with jittered
+  backoff. Groq 403 = VPN. 429 "Request too large" is not retried.
+- `ratelimit.py`, `registry.py` (one limiter per provider), `preflight.py`.
 
-Rules:
-- Cache key = spec, kind, temperature, schema, messages, and a **salt**.
-  Callers pass a salt such as conversation id + turn, so repeats of the same
-  conversation get independent samples instead of one cached answer.
-- **Replay mode** (`replay_only=True` with a `JsonCassette`): no chat model is
-  built and no provider package is imported. A miss raises `ReplayMissError`.
-- Provider packages are imported lazily, only inside `make_chat_model`.
-  Importing `convoprobe.cli` or `convoprobe.models` must not import them; a
-  subprocess test enforces this.
+## Simulator, judge, personas
 
-## Store schema
+- `LLMSimulator` flips roles: its own past lines are AIMessages, the agent's
+  are HumanMessages, so a small model does not play the agent. It returns a
+  `SimTurn` (`goal_status`, `message`); achieved/impossible stops only after
+  the agent replied once. One retry on bad output; a second failure ends the
+  conversation as `simulator_error` (status `failed`, no checks).
+- Judge: `YesNoVerdict` / `ScaleVerdict`, reasoning first. Transcript lines
+  are `turn N USER|AGENT|AGENT TOOL CALL: ...`; a user message and the reply
+  after it share N. Evidence turns outside the transcript make an attempt
+  invalid; two invalid attempts give status `error`, never a pass.
+  `quote_found` checks each quote against its turn. No docstrings on schema
+  classes: pydantic sends them to the model.
+- Personas: `generate: N` uses the simulator client, ids `gen_<slug>`, saved
+  per run so a resume reuses them.
 
-- `runs(run_id, scenario_name, scenario_hash, adapter, started_at, finished_at)`.
-  Resuming a run id with a different scenario hash is an error.
-- `conversations(run_id, conversation_id, persona_id, repeat_index, status,
-  attempts, data_json, error, updated_at)`. Status is one of `pending`,
-  `done`, `failed_transient`, `failed`, `skipped`.
-- `check_results(run_id, conversation_id, rubric_id, status, detail)`,
-  replaced per conversation on each save.
-- All timestamps UTC ISO 8601.
+## Replay and the demo cassette
+
+- `demo --record` runs v1 and v2 live on Groq (run ids `demo-v1`, `demo-v2`,
+  db `.convoprobe/demo-record.db`) and writes `demo/cassette.json` only if
+  every conversation is `done`. Otherwise it lists failures and exits 1.
+- `demo` replays that cassette with `DEMO_SIMULATOR` / `DEMO_JUDGE`, which are
+  fixed constants, not `HOSTED_*`: the cache keys include the spec.
+- Anything that changes a prompt, schema, salt, or the demo scenario changes
+  cache keys. Re-record the cassette after such a change.
 
 ## Runner flow
 
 1. Create or resume the run. Conversation ids are `<persona>-r<repeat>`.
-2. `generate: N` entries are noted, not run. LLM personas without a
-   simulator are saved as `skipped` with a note.
-3. Only `pending` and `failed_transient` conversations run, under a semaphore.
-4. Loop up to `max_turns`: simulator message (None ends it), `adapter.send`,
-   record latency and tool calls. `adapter.end` always runs.
-5. `TransientError` saves `failed_transient` with the partial transcript.
-   Any other exception saves `failed` with `agent_error` and still scores.
-6. Results are rebuilt from the store, so resumed runs include earlier work.
-   Writes `<out>/<run_id>/results.json` and `<out>/<run_id>/log.jsonl`.
+2. Expand `generate:` entries (or reuse saved ones). LLM personas without a
+   simulator are `skipped`, and run on a later resume that has one.
+3. Only `pending`, `failed_transient`, and rerunnable `skipped` conversations run.
+4. Deterministic checks, then judge checks, saved together. Judge
+   `TransientError` = `failed_transient`, judge replay miss = `failed`.
+5. Results come from the store, with repeat stdev, per-persona rates,
+   `models`, and `llm_usage`.
+
+## Store schema
+
+`runs`, `conversations` (status `pending|done|failed_transient|failed|skipped`),
+`check_results` (+ `extra_json` for judge fields, added by migration),
+`generated_personas`, `llm_cache`, `llm_cache_usage`. Timestamps UTC ISO 8601.
 
 ## How to extend
 
-- New check type: add a model to `datamodels.py`, add it to `RubricItem`
-  and the tag set in `scenario.py`, write a function in
-  `scoring/deterministic.py`, register it in `_CHECKS`, test pass and fail
-  with exact detail strings.
-- New adapter: implement the three async `AgentAdapter` methods. Raise
-  `TransientError` for retryable failures.
-- New provider: add it to `PROVIDERS` and `_CLASSES` in `models/factory.py`
-  with its constructor arguments (`max_retries=0`), add an optional extra in
-  `pyproject.toml`, add its limiter settings to `config.py` and
-  `LLMRegistry.limiter`, and add its error class names to `retry.py` if they
-  are not already covered.
+- New check: model in `datamodels.py`, add to `RubricItem` and the tag set in
+  `scenario.py`, function in `scoring/deterministic.py`, register in `_CHECKS`.
+- New adapter: the three async `AgentAdapter` methods; raise `TransientError`
+  for retryable failures.
+- New provider: `PROVIDERS` and `_CLASSES` in `models/factory.py`, an extra in
+  `pyproject.toml`, limiter settings in `config.py` and `LLMRegistry.limiter`,
+  its structured method in `registry.STRUCTURED_METHOD`.
 
 ## Contracts
 
-- Core must import and test without any extra installed. Provider packages
-  are imported lazily with an "install convoprobe[<extra>]" error.
-- Test suite is offline: no sockets. HTTP tests use `httpx.MockTransport`.
-- The demo needs nothing outside the package: no model, no key, no network.
+- Core imports without extras; a subprocess test checks no provider loads.
+- Offline tests: `conftest.py` blocks DNS and non-loopback connects, blocks the
+  Ollama port, and hides `.env`. HTTP tests use `httpx.MockTransport`.
+- The demo needs nothing outside the package: no key, no network.

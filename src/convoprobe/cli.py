@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import tempfile
 from contextlib import ExitStack
+from datetime import UTC, datetime
 from importlib.resources import as_file, files
 from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 from rich.console import Console
 from rich.table import Table
 
@@ -28,6 +30,7 @@ from convoprobe.report.json_report import format_rate, print_run_report
 from convoprobe.runner import new_run_id, run_scenario
 from convoprobe.scenario import ScenarioError, load_scenario, parse_scenario
 from convoprobe.simulator.llm import LLMSimulator
+from convoprobe.simulator.personas import generate_personas
 from convoprobe.store import RunStore
 
 app = typer.Typer(
@@ -166,6 +169,72 @@ def run(
     console = Console()
     print_run_report(result, console, f"convoprobe run {result.run_id}")
     console.print(f"results: {out / result.run_id / 'results.json'}", markup=False, soft_wrap=True)
+
+
+cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)
+app.add_typer(cassette_app, name="cassette")
+personas_app = typer.Typer(help="Generate personas with the simulator model.", no_args_is_help=True)
+app.add_typer(personas_app, name="personas")
+
+
+def _today() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%d")
+
+
+@cassette_app.command("export")
+def cassette_export(
+    run_ids: Annotated[
+        list[str], typer.Option("--run-id", help="Run whose LLM calls to export. Repeatable.")
+    ],
+    out: Annotated[Path, typer.Option(help="Cassette file to write.")],
+    db: Annotated[Path, typer.Option(help="SQLite file holding the LLM cache.")] = DEFAULT_DB,
+) -> None:
+    """Export the cached LLM calls of one or more runs to a replay cassette."""
+    with SqliteLLMCache(db) as cache:
+        meta = {"recorded_at": _today(), "run_ids": ",".join(run_ids)}
+        count = cache.export_cassette(run_ids, out, meta=meta)
+    if count == 0:
+        out.unlink(missing_ok=True)
+        raise _fail("no cached LLM calls found for those run ids")
+    typer.echo(f"wrote {count} entries to {out}")
+
+
+@personas_app.command("generate")
+def personas_generate(
+    scenario_path: Annotated[Path, typer.Argument(metavar="SCENARIO", help="Scenario YAML file.")],
+    n: Annotated[int, typer.Option("-n", min=1, max=50, help="How many personas.")],
+    simulator: Annotated[
+        str | None, typer.Option(help="Simulator model as provider:model.")
+    ] = None,
+    hosted: Annotated[
+        bool, typer.Option("--hosted", help="Use the hosted Groq simulator unless set.")
+    ] = False,
+    replay: Annotated[Path | None, typer.Option(help="Replay from a cassette.")] = None,
+    db: Annotated[Path, typer.Option(help="SQLite file for the LLM cache.")] = DEFAULT_DB,
+) -> None:
+    """Generate personas for a scenario and print them as YAML."""
+    try:
+        scenario = load_scenario(scenario_path)
+        settings = load_settings()
+        spec = _pick_spec(simulator, hosted, HOSTED_SIMULATOR, settings.convoprobe_simulator)
+        with ExitStack() as stack:
+            cache: LLMCache = (
+                _open_cassette(replay)
+                if replay is not None
+                else stack.enter_context(SqliteLLMCache(db))
+            )
+            registry = LLMRegistry(settings, cache, replay_only=replay is not None)
+            client = registry.client(spec, SIMULATOR_TEMPERATURE)
+            if replay is None:
+                asyncio.run(_preflight(settings, [spec]))
+            salt = f"personas-cli:{RunStore.scenario_hash(scenario)}:{n}"
+            personas, notes = asyncio.run(generate_personas(scenario, n, client, salt=salt))
+    except (ScenarioError, ConvoprobeError) as exc:
+        raise _fail(str(exc)) from None
+    rows = [{"id": p.id, "description": p.description, "goal": p.goal} for p in personas]
+    typer.echo(yaml.safe_dump(rows, sort_keys=False, allow_unicode=True), nl=False)
+    for note in notes:
+        typer.echo(f"note: {note}", err=True)
 
 
 @app.command()

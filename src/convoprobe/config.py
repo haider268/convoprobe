@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Hosted defaults: different model families so the judge does not grade its own style.
+HOSTED_SIMULATOR = "groq:openai/gpt-oss-20b"
+HOSTED_JUDGE = "groq:qwen/qwen3.8-27b"
 
 
 class Settings(BaseSettings):
@@ -27,12 +33,19 @@ class Settings(BaseSettings):
 
     llm_timeout_s: float = 60.0
 
-    # Groq free tier as last verified Sep 2026: about 30 requests/min, 6,000 tokens/min.
+    # Groq free tier as last verified 28 Sep 2026 from response headers: about 30
+    # requests/min, 8,000 tokens/min, 1,000 requests/day per model.
     groq_rpm: float = 30.0
-    groq_tpm: float | None = 6000.0
+    groq_tpm: float | None = 8000.0
     groq_concurrency: int = 2
 
     # Conservative default. Verify the current Gemini free tier before relying on it.
     gemini_rpm: float = 10.0
     gemini_tpm: float | None = None
     gemini_concurrency: int = 2
+
+
+def load_settings() -> Settings:
+    """Settings from the env file named by CONVOPROBE_ENV_FILE (default .env)."""
+    env_file = os.environ.get("CONVOPROBE_ENV_FILE", ".env")
+    return Settings(_env_file=env_file)  # type: ignore[call-arg]

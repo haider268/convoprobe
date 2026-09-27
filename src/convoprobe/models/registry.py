@@ -9,6 +9,10 @@ from convoprobe.models.cache import LLMCache
 from convoprobe.models.client import LLMClient
 from convoprobe.models.ratelimit import ProviderLimiter
 
+# json_schema works on Ollama and on every current Groq chat model. Groq's default
+# (function calling) has failed with "tool_use_failed". Gemini keeps its default.
+STRUCTURED_METHOD: dict[str, str | None] = {"ollama": "json_schema", "groq": "json_schema"}
+
 
 class LLMRegistry:
     """Creates LLMClients. In replay mode no provider package is imported."""
@@ -54,6 +58,7 @@ class LLMRegistry:
             limiter=self.limiter(provider),
             replay_only=self.replay_only,
             run_id=self.run_id,
+            structured_method=STRUCTURED_METHOD.get(provider),
         )
         self._clients.append(client)
         return client

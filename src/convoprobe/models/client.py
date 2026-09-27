@@ -16,9 +16,12 @@ from convoprobe.datamodels import LLMUsage
 from convoprobe.errors import ConvoprobeError
 from convoprobe.models.cache import LLMCache
 from convoprobe.models.ratelimit import ProviderLimiter, estimate_tokens
-from convoprobe.models.retry import RetryPolicy, call_with_retry
+from convoprobe.models.retry import RetryPolicy, call_with_retry, is_transient
 
 T = TypeVar("T", bound=BaseModel)
+
+# Provider error text meaning the model could not fit the schema. Not retryable.
+_PROVIDER_SCHEMA_FAIL = ("tool_use_failed", "json_validate_failed", "failed_generation")
 
 
 class StructuredOutputError(ConvoprobeError):
@@ -63,6 +66,7 @@ class LLMClient:
         replay_only: bool = False,
         run_id: str | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        structured_method: str | None = None,
     ) -> None:
         if chat_model is None and not replay_only:
             raise ConvoprobeError(f"{spec}: a chat model is required unless replay_only is set")
@@ -75,6 +79,7 @@ class LLMClient:
         self.replay_only = replay_only
         self.run_id = run_id
         self._sleep = sleep
+        self.structured_method = structured_method
         self.usage = LLMUsage(spec=spec)
 
     def cache_key(
@@ -159,9 +164,18 @@ class LLMClient:
             message = await chat_model.ainvoke(list(messages))
             ai = message if isinstance(message, AIMessage) else None
             return {"text": _content_text(message.content)}, ai
-        out = await chat_model.with_structured_output(schema, include_raw=True).ainvoke(
-            list(messages)
-        )
+        kwargs: dict[str, Any] = {"include_raw": True}
+        if self.structured_method is not None:
+            kwargs["method"] = self.structured_method
+        try:
+            out = await chat_model.with_structured_output(schema, **kwargs).ainvoke(list(messages))
+        except Exception as exc:
+            text = str(exc)
+            if not is_transient(exc) and any(marker in text for marker in _PROVIDER_SCHEMA_FAIL):
+                raise StructuredOutputError(
+                    f"{self.spec} could not produce {schema.__name__}: {text[:200]}"
+                ) from exc
+            raise
         if not isinstance(out, dict):
             out = {"raw": None, "parsed": out, "parsing_error": None}
         raw = out.get("raw")

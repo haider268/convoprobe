@@ -197,6 +197,54 @@ def test_needs_chat_model_unless_replay(cache: SqliteLLMCache) -> None:
         LLMClient("ollama:fake", cache=cache, chat_model=None, temperature=0.0)
 
 
+class BadRequestError(Exception):
+    """Shaped like a provider 400: not transient."""
+
+    status_code = 400
+
+
+async def test_structured_method_forwarded(cache: SqliteLLMCache) -> None:
+    llm, model = client(cache, [{"verdict": "y", "score": 1}], structured_method="json_schema")
+    await llm.structured(MESSAGES, Verdict)
+    assert model.structured_kwargs == [{"include_raw": True, "method": "json_schema"}]
+
+
+async def test_structured_method_default_not_sent(cache: SqliteLLMCache) -> None:
+    llm, model = client(cache, [{"verdict": "y", "score": 1}])
+    await llm.structured(MESSAGES, Verdict)
+    assert model.structured_kwargs == [{"include_raw": True}]
+
+
+@pytest.mark.parametrize("marker", ["tool_use_failed", "json_validate_failed", "failed_generation"])
+async def test_provider_schema_failure_is_structured_error(
+    cache: SqliteLLMCache, marker: str
+) -> None:
+    error = BadRequestError(f"Error code: 400 - {{'error': {{'code': '{marker}'}}}}")
+    llm, model = client(cache, [error, {"verdict": "y", "score": 1}])
+    with pytest.raises(StructuredOutputError) as info:
+        await llm.structured(MESSAGES, Verdict)
+    assert str(info.value).startswith("ollama:fake could not produce Verdict: Error code: 400")
+    assert info.value.__cause__ is error
+    assert model.calls == 1
+    assert llm.usage.retries == 0
+    assert cache_rows(cache, "llm_cache") == 0
+
+
+async def test_other_structured_errors_propagate(cache: SqliteLLMCache) -> None:
+    llm, _ = client(cache, [BadRequestError("Error code: 400 - model not found")])
+    with pytest.raises(BadRequestError, match="model not found"):
+        await llm.structured(MESSAGES, Verdict)
+
+
+async def test_transient_with_marker_still_retried(cache: SqliteLLMCache) -> None:
+    llm, model = client(
+        cache, [ServerDown("failed_generation upstream"), {"verdict": "y", "score": 1}]
+    )
+    assert (await llm.structured(MESSAGES, Verdict)).score == 1
+    assert model.calls == 2
+    assert llm.usage.retries == 1
+
+
 def test_content_text() -> None:
     assert _content_text("plain") == "plain"
     parts = ["a", {"type": "text", "text": "b"}, {"type": "image", "url": "x"}]

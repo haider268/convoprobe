@@ -24,6 +24,8 @@ class FakeChatModel(BaseChatModel):
 
     outputs: list[Any] = Field(default_factory=list)
     calls: int = 0
+    structured_kwargs: list[dict[str, Any]] = Field(default_factory=list)
+    seen: list[list[BaseMessage]] = Field(default_factory=list)
 
     @property
     def _llm_type(self) -> str:
@@ -43,6 +45,7 @@ class FakeChatModel(BaseChatModel):
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
+        self.seen.append(list(messages))
         text = self._next()
         message = AIMessage(content=text, usage_metadata=USAGE)  # type: ignore[arg-type]
         return ChatResult(generations=[ChatGeneration(message=message)])
@@ -59,7 +62,10 @@ class FakeChatModel(BaseChatModel):
     def with_structured_output(  # type: ignore[override]
         self, schema: Any, *, include_raw: bool = False, **kwargs: Any
     ) -> RunnableLambda[Any, dict[str, Any]]:
-        def run(_messages: Any) -> dict[str, Any]:
+        self.structured_kwargs.append({"include_raw": include_raw, **kwargs})
+
+        def run(messages: Any) -> dict[str, Any]:
+            self.seen.append(list(messages))
             output = self._next()
             if output == "BAD":
                 return {

@@ -13,6 +13,7 @@ from convoprobe.config import Settings
 from convoprobe.models import factory
 from convoprobe.models.cache import SqliteLLMCache
 from convoprobe.models.registry import LLMRegistry
+from tests.llm_doubles import FakeChatModel
 
 
 @pytest.fixture
@@ -30,19 +31,22 @@ def settings() -> Settings:
 
 
 def test_same_provider_shares_limiter(cache: SqliteLLMCache) -> None:
+    pytest.importorskip("langchain_ollama")
+    pytest.importorskip("langchain_groq")
     registry = LLMRegistry(settings(), cache)
     sim = registry.client("ollama:qwen2.5:3b", 0.7)
     judge = registry.client("ollama:llama3.2:3b", 0.0)
-    groq = registry.client("groq:llama-3.1-8b-instant", 0.7)
+    groq = registry.client("groq:openai/gpt-oss-20b", 0.7)
     assert sim.limiter is judge.limiter
     assert groq.limiter is not sim.limiter
     assert sim.limiter is not None and sim.limiter.requests is None
     assert groq.limiter is not None and groq.limiter.requests is not None
     assert groq.limiter.requests.capacity == 30.0
-    assert groq.limiter.tokens is not None and groq.limiter.tokens.capacity == 6000.0
+    assert groq.limiter.tokens is not None and groq.limiter.tokens.capacity == 8000.0
 
 
 def test_gemini_limiter_from_settings(cache: SqliteLLMCache) -> None:
+    pytest.importorskip("langchain_google_genai")
     gemini = LLMRegistry(settings(), cache).client("gemini:some-model", 0.0)
     assert gemini.limiter is not None
     assert gemini.limiter.requests is not None and gemini.limiter.requests.capacity == 10.0
@@ -64,8 +68,19 @@ def test_replay_only_never_builds_models(
 
 
 def test_usage_lists_all_clients(cache: SqliteLLMCache) -> None:
+    pytest.importorskip("langchain_ollama")
     registry = LLMRegistry(settings(), cache)
     registry.client("ollama:qwen2.5:3b", 0.7)
     registry.client("ollama:llama3.2:3b", 0.0)
     assert [u.spec for u in registry.usage()] == ["ollama:qwen2.5:3b", "ollama:llama3.2:3b"]
     assert all(u.calls == 0 for u in registry.usage())
+
+
+def test_structured_method_per_provider(
+    cache: SqliteLLMCache, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(factory, "make_chat_model", lambda *args: FakeChatModel())
+    registry = LLMRegistry(settings(), cache)
+    assert registry.client("ollama:qwen2.5:3b", 0.7).structured_method == "json_schema"
+    assert registry.client("groq:openai/gpt-oss-20b", 0.7).structured_method == "json_schema"
+    assert registry.client("gemini:some-model", 0.0).structured_method is None

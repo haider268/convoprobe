@@ -41,6 +41,7 @@ def test_parse_spec_invalid(spec: str) -> None:
 
 
 def test_ollama_model() -> None:
+    pytest.importorskip("langchain_ollama")
     s = settings(ollama_base_url="http://ollama.example:11434", ollama_timeout_s=99.0)
     chat = make_chat_model("ollama:qwen2.5:3b", s, temperature=0.3)
     assert type(chat).__name__ == "ChatOllama"
@@ -52,6 +53,7 @@ def test_ollama_model() -> None:
 
 
 def test_groq_model() -> None:
+    pytest.importorskip("langchain_groq")
     s = settings(groq_api_key=SecretStr("test-key"), llm_timeout_s=12.0)
     chat = make_chat_model("groq:llama-3.1-8b-instant", s, temperature=0.7)
     assert type(chat).__name__ == "ChatGroq"
@@ -62,6 +64,7 @@ def test_groq_model() -> None:
 
 
 def test_gemini_model() -> None:
+    pytest.importorskip("langchain_google_genai")
     s = settings(google_api_key=SecretStr("test-key"))
     chat = make_chat_model("gemini:some-model", s, temperature=0.0)
     assert type(chat).__name__ == "ChatGoogleGenerativeAI"

@@ -2,7 +2,7 @@
 
 convoprobe stress-tests conversational agents with simulated users. Scenario
 YAML plus an agent adapter in; scored conversations, reports, and a CI exit
-code out. Status: milestone 2 (LLM simulator, judge, personas, replay).
+code out. Status: milestone 3 (LangGraph and HTTP adapters).
 
 ## Hard rules
 
@@ -36,16 +36,37 @@ uv run pytest -m live -q --no-cov    # live: needs Ollama (and .env for Groq)
 uv run ruff check && uv run ruff format --check && uv run mypy src
 ```
 
-`run` modes: default is live with `CONVOPROBE_SIMULATOR` / `CONVOPROBE_JUDGE`
-(Ollama `qwen2.5:3b` / `llama3.2:3b`, preflighted with `check_ollama`).
-`--hosted` fills unset models with `HOSTED_SIMULATOR` (`groq:openai/gpt-oss-20b`)
-and `HOSTED_JUDGE` (`groq:openai/gpt-oss-120b`). The judge is the strongest
-available model, measured 4/4 valid outputs on 28 Sep 2026; qwen3.8-27b was 1/4.
-For real agents it should also be a different family from the agent under test.
-`--replay` reads a cassette, needs no key or provider package. `--no-llm` is the
-M1 behaviour and cannot be combined with model options. Simulator runs at
-temperature 0.7, judge at 0.0. The LLM cache shares the `--db` file.
+`run` modes: default is live Ollama (`qwen2.5:3b` / `llama3.2:3b`, preflighted);
+a live Ollama judge prints a note because a 3B judge gave wrong verdicts in
+review. `--hosted` uses `groq:openai/gpt-oss-20b` / `groq:openai/gpt-oss-120b`
+for unset models (the judge had 4/4 valid outputs on 28 Sep 2026, qwen3.8-27b
+1/4; for real agents pick a judge family different from the agent). `--replay`
+needs no key or provider package. `--no-llm` cannot be combined with model
+options. Simulator at temperature 0.7, judge 0.0; the LLM cache shares `--db`.
 Exit 2 on scenario, adapter, model, key, Ollama, or store errors.
+
+## Adapters
+
+`--adapter` takes `module.path:attr` (the cwd is put on `sys.path`, so
+`examples.toy_support_agent.graph:adapter_v1` works from the repo root) or
+`http:<config.yaml>`. A compiled LangGraph graph is wrapped automatically.
+- `CallableAdapter`: `(history) -> str | AgentTurn`, sync or async.
+- `LangGraphAdapter(graph, resume=...)`: needs a checkpointer. A fresh thread
+  per conversation start (a resumed run must not continue an old thread).
+  Interrupts are resumed with `resume` (a value, or a callable given the
+  payload); `resume=None` makes an interrupt an error; `max_resumes` caps a
+  turn. Node path, interrupt payloads, and resumes go to message `metadata`.
+  langgraph is imported only inside methods, so core works without the extra.
+- `HTTPAdapter`: YAML config (`url`, `request_template` with whole-value
+  `{{message}}` / `{{conversation_id}}` / `{{history}}`, dotted `text_path` and
+  `tool_calls_path`, `headers` with `${ENV}`). 408/429/500/502/503/504 retry.
+- `examples/`: the toy agent as a LangGraph graph with human approval before a
+  refund, and a stdlib HTTP server. `tests/test_adapter_equivalence.py` runs
+  the demo scenario through all three shapes and requires identical checks,
+  replies, and tool calls, then replays the demo cassette through the graph.
+  That test is the proof that an adapter is faithful; keep it green.
+- The toy agent only reads whole 4-digit order ids. Kept on purpose: generated
+  personas found it in live runs, and it stays as a demo finding.
 
 ## Layout
 
@@ -56,8 +77,9 @@ Exit 2 on scenario, adapter, model, key, Ollama, or store errors.
   `summary.py`, `jsonlog.py`, `report/json_report.py`, `cli.py`.
 - `scoring/deterministic.py` (8 checks) and `scoring/judge.py`.
 - `simulator/`: `simulator.py` (protocol, scripted), `llm.py`, `personas.py`.
-- `demo/`: toy agent, `scenario.yaml`, `cassette.json`, `DEMO_*` constants.
-  All package data. No module may shadow a stdlib name.
+- `demo/`: toy agent (`decide()` plus reply texts, shared by every agent
+  shape), `scenario.yaml`, `cassette.json`, `DEMO_*`. All package data.
+- No module may shadow a stdlib or dependency name (`langgraph_adapter.py`).
 
 ## LLM layer (models/)
 
@@ -100,36 +122,28 @@ Exit 2 on scenario, adapter, model, key, Ollama, or store errors.
 - Anything that changes a prompt, schema, salt, or the demo scenario changes
   cache keys. Re-record the cassette after such a change.
 
-## Runner flow
+## Runner flow and store
 
-1. Create or resume the run. Conversation ids are `<persona>-r<repeat>`.
-2. Expand `generate:` entries (or reuse saved ones). LLM personas without a
-   simulator are `skipped`, and run on a later resume that has one.
-3. Only `pending`, `failed_transient`, and rerunnable `skipped` conversations run.
-4. Deterministic checks, then judge checks, saved together. Judge
-   `TransientError` = `failed_transient`, judge replay miss = `failed`.
-5. Results come from the store, with repeat stdev, per-persona rates,
-   `models`, and `llm_usage`.
-
-## Store schema
-
-`runs`, `conversations` (status `pending|done|failed_transient|failed|skipped`),
-`check_results` (+ `extra_json` for judge fields, added by migration),
-`generated_personas`, `llm_cache`, `llm_cache_usage`. Timestamps UTC ISO 8601.
+1. Resume by run id; conversation ids are `<persona>-r<repeat>`; `generate:`
+   entries are expanded once and saved. Runs `pending`, `failed_transient`,
+   and `skipped` LLM personas once a simulator is given.
+2. Deterministic then judge checks, saved together. Judge `TransientError` =
+   `failed_transient`, judge replay miss = `failed`. Results come from the store.
+3. Tables: `runs`, `conversations`, `check_results` (+ `extra_json`, migrated),
+   `generated_personas`, `llm_cache`, `llm_cache_usage`. Timestamps UTC ISO 8601.
 
 ## How to extend
 
 - New check: model in `datamodels.py`, add to `RubricItem` and the tag set in
   `scenario.py`, function in `scoring/deterministic.py`, register in `_CHECKS`.
-- New adapter: the three async `AgentAdapter` methods; raise `TransientError`
-  for retryable failures.
+- New adapter: the three async `AgentAdapter` methods (see Adapters); raise
+  `TransientError` for retryable failures, and add it to the equivalence test.
 - New provider: `PROVIDERS` and `_CLASSES` in `models/factory.py`, an extra in
   `pyproject.toml`, limiter settings in `config.py` and `LLMRegistry.limiter`,
   its structured method in `registry.STRUCTURED_METHOD`.
 
 ## Contracts
 
-- Core imports without extras; a subprocess test checks no provider loads.
-- Offline tests: `conftest.py` blocks DNS and non-loopback connects, blocks the
-  Ollama port, and hides `.env`. HTTP tests use `httpx.MockTransport`.
-- The demo needs nothing outside the package: no key, no network.
+- Core imports without extras (no provider, no langgraph); subprocess tests check.
+- Offline tests: `conftest.py` hides `.env` and blocks all but loopback, and the
+  Ollama port. The demo needs nothing outside the package: no key, no network.

@@ -1,0 +1,7 @@
+type: http
+url: http://127.0.0.1:8765/chat
+request_template:
+  session: "{{conversation_id}}"
+  message: "{{message}}"
+text_path: reply
+tool_calls_path: tool_calls

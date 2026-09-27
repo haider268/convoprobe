@@ -78,6 +78,7 @@ def test_cassette_meta_round_trip(tmp_path: Path) -> None:
     cassette = JsonCassette(path)
     assert cassette.meta == meta
     assert cassette.get("k") == {"text": "hi"}
+    assert b"\r\n" not in path.read_bytes()
 
 
 @pytest.mark.parametrize("payload", [{"format": 2, "entries": {}}, {"entries": {}}, [1, 2]])

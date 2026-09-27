@@ -119,7 +119,8 @@ class SqliteLLMCache:
         if meta is not None:
             payload["meta"] = meta
         text = json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
-        out_path.write_text(text, encoding="utf-8")
+        # LF on every OS, so a cassette recorded on Windows matches the committed file.
+        out_path.write_text(text, encoding="utf-8", newline="\n")
         return len(entries)
 
 

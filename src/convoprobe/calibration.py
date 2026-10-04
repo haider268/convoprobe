@@ -20,6 +20,13 @@ from convoprobe.errors import ConvoprobeError
 from convoprobe.report.load import load_results
 from convoprobe.scoring.judge import format_transcript
 
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,}")
+PHONE = re.compile(r"\+?\(?\d[\d\s().-]{6,}\d")
+# Domains and numbers reserved for documentation and fiction, so they reach no one.
+SAFE_DOMAINS = ("example.com", "example.org", "example.net")
+SAFE_SUFFIXES = (".example", ".test", ".invalid")
+SAFE_PHONE = re.compile(r"55501\d\d")
+
 LABELS_FILE = "labels.yaml"
 OVERWRITE_REFUSED = "labels.yaml already has labels; refusing to overwrite"
 GENERATED = re.compile(r"^c\d+\.(json|md)$")
@@ -102,6 +109,48 @@ def render_transcript(
     return "\n".join(lines) + "\n"
 
 
+def _safe_email(address: str) -> bool:
+    domain = address.rsplit("@", 1)[1].lower()
+    return domain in SAFE_DOMAINS or domain.endswith(SAFE_SUFFIXES)
+
+
+def contact_details(text: str) -> list[tuple[str, str]]:
+    """(kind, matched text) for every email or phone number not in a reserved range."""
+    found: list[tuple[str, str]] = []
+    for match in EMAIL.finditer(text):
+        if not _safe_email(match.group()):
+            found.append(("email", match.group()))
+    for match in PHONE.finditer(text):
+        digits = re.sub(r"\D", "", match.group())
+        if len(digits) >= 7 and not SAFE_PHONE.search(digits):
+            found.append(("phone", match.group()))
+    return found
+
+
+def _conversation_texts(conversation: Conversation) -> list[str]:
+    texts: list[str] = []
+    for message in conversation.messages:
+        texts.append(message.text)
+        for call in message.tool_calls:
+            texts.append(json.dumps(call.args, ensure_ascii=False, default=str))
+            texts.append(json.dumps(call.result, ensure_ascii=False, default=str))
+    return texts
+
+
+def _check_contact_details(picked: list[tuple[str, Conversation]]) -> None:
+    """Refuse the whole set if any conversation holds a real-looking email or phone."""
+    problems = [
+        f"{item_id} {kind}: {value}"
+        for item_id, conversation in picked
+        for text in _conversation_texts(conversation)
+        for kind, value in contact_details(text)
+    ]
+    if problems:
+        raise ConvoprobeError(
+            "real-looking contact details found; nothing written:\n  " + "\n  ".join(problems)
+        )
+
+
 def _has_labels(path: Path) -> bool:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -135,6 +184,10 @@ def prepare(sources: list[Path], out_dir: Path, max_items: int = 30) -> Prepared
                 picked.append((result, conversation, items))
                 count += 1
         summary.per_source.append((str(source), count))
+
+    _check_contact_details(
+        [(f"c{index:02d}", conversation) for index, (_r, conversation, _i) in enumerate(picked, 1)]
+    )
 
     conversations_dir = out_dir / "conversations"
     transcripts_dir = out_dir / "transcripts"

@@ -13,7 +13,13 @@ import yaml
 from pydantic import TypeAdapter
 from typer.testing import CliRunner
 
-from convoprobe.calibration import OVERWRITE_REFUSED, README, prepare, render_transcript
+from convoprobe.calibration import (
+    OVERWRITE_REFUSED,
+    README,
+    contact_details,
+    prepare,
+    render_transcript,
+)
 from convoprobe.cli import app
 from convoprobe.datamodels import (
     CheckResult,
@@ -26,6 +32,7 @@ from convoprobe.datamodels import (
 )
 from convoprobe.errors import ConvoprobeError
 from convoprobe.report.json_report import write_results
+from convoprobe.report.load import load_results
 from convoprobe.scoring.judge import format_transcript
 
 runner = CliRunner()
@@ -283,6 +290,88 @@ def test_rerun_removes_stale_items(tmp_path: Path, sources: list[Path]) -> None:
     prepare(sources, out, max_items=1)
     assert sorted(p.name for p in (out / "transcripts").iterdir()) == ["c01.md", "keep.txt"]
     assert [p.name for p in (out / "conversations").iterdir()] == ["c01.json"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("mail pat@example.com please", []),
+        ("write to bookings@meridian.example", []),
+        ("a@b.test", []),
+        ("x@example.org and y@EXAMPLE.net", []),
+        ("someone@email.com", [("email", "someone@email.com")]),
+        ("x@meridianclinic.com", [("email", "x@meridianclinic.com")]),
+        ("call 555-0123", []),
+        ("call 555-0100", []),
+        ("call (555) 987-6543", [("phone", "(555) 987-6543")]),
+        ("call +1 212 555 7788", [("phone", "+1 212 555 7788")]),
+        ("order 1042 and 987654, refund 89.0", []),
+        ('{"amount": 89.0, "order_id": "1042"}', []),
+    ],
+)
+def test_contact_details(text: str, expected: list[tuple[str, str]]) -> None:
+    assert contact_details(text) == expected
+
+
+def contact_run(root: Path, text_by_cid: dict[str, str], tool_result: object = "ok") -> Path:
+    run_dir = write_run(root, "contacts", rubric(YES_NO), [(c, "p", "done") for c in text_by_cid])
+    result = load_results(run_dir)
+    conversations = []
+    for conv in result.conversations:
+        messages = [
+            Message(role="user", text=text_by_cid[conv.id]),
+            Message(
+                role="agent",
+                text="Booked.",
+                tool_calls=[ToolCallRecord(name="book", args={"day": "mon"}, result=tool_result)],
+            ),
+        ]
+        conversations.append(conv.model_copy(update={"messages": messages}))
+    write_results(result.model_copy(update={"conversations": conversations}), root)
+    return run_dir
+
+
+def test_refusal_lists_items_and_writes_nothing(tmp_path: Path) -> None:
+    source = contact_run(
+        tmp_path / "runs",
+        {
+            "p-r0": "I am pat@example.com, 555-0123",
+            "p-r1": "Reach me at someone@email.com or (555) 987-6543",
+            "p-r2": "Order 1042 for 89.0",
+        },
+        tool_result={"contact": "x@meridianclinic.com"},
+    )
+    out = tmp_path / "calib"
+    with pytest.raises(ConvoprobeError) as info:
+        prepare([source], out)
+    assert str(info.value) == (
+        "real-looking contact details found; nothing written:\n"
+        "  c01 email: x@meridianclinic.com\n"
+        "  c02 email: someone@email.com\n"
+        "  c02 phone: (555) 987-6543\n"
+        "  c02 email: x@meridianclinic.com\n"
+        "  c03 email: x@meridianclinic.com"
+    )
+    assert not out.exists()
+    result = runner.invoke(app, ["calibrate", "prepare", "--from", str(source), "--out", str(out)])
+    assert result.exit_code == 2
+    assert result.output.startswith("error: real-looking contact details found; nothing written")
+    assert not out.exists()
+
+
+def test_tool_args_are_scanned(tmp_path: Path) -> None:
+    source = contact_run(tmp_path / "runs", {"p-r0": "hi"}, tool_result={"phone": "212 555 7788"})
+    with pytest.raises(ConvoprobeError, match="c01 phone: 212 555 7788"):
+        prepare([source], tmp_path / "calib")
+
+
+def test_reserved_details_pass(tmp_path: Path) -> None:
+    source = contact_run(
+        tmp_path / "runs",
+        {"p-r0": "pat@example.com, 555-0123"},
+        tool_result={"email": "bookings@meridian.example", "phone": "555-0100"},
+    )
+    assert prepare([source], tmp_path / "calib").items == 1
 
 
 def test_cli_prepare(tmp_path: Path, sources: list[Path]) -> None:

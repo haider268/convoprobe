@@ -1,7 +1,7 @@
 Check an agent for regressions against the saved baseline. Agent: $ARGUMENTS
 
-Run everything from the convoprobe folder. If `uv` is not on PATH, use
-`C:\Users\maria\.local\bin\uv.exe`.
+Run everything from the convoprobe folder. Run uv. If uv is not on PATH, call
+it by its full path (on Windows usually `%USERPROFILE%\.local\bin\uv.exe`).
 
 1. Work out the adapter spec from $ARGUMENTS: `module.path:attr` for a Python
    agent or LangGraph graph, or `http:<config.yaml>` for an HTTP agent. If a

@@ -17,7 +17,8 @@ code out. Status: 0.1.0 (README, example CI gate in `ci/`, judge calibration).
 
 ## How to run
 
-uv lives at `C:\Users\maria\.local\bin\uv.exe` if it is not on PATH.
+Run uv. If uv is not on PATH, call it by its full path (on Windows usually
+`%USERPROFILE%\.local\bin\uv.exe`).
 
 ```
 uv sync --all-extras                 # as CI does
@@ -40,10 +41,9 @@ uv run pytest -m live -q --no-cov    # live: needs Ollama (and .env for Groq)
 uv run ruff check && uv run ruff format --check && uv run mypy src
 ```
 
-`run` modes: default live Ollama (`qwen2.5:3b` / `llama3.2:3b`, preflighted; a
-live Ollama judge prints a reliability note). `--hosted`: Groq `gpt-oss-20b` /
-`gpt-oss-120b` (for real agents pick a judge family different from the agent).
-Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
+`run` modes: default live Ollama (`qwen2.5:3b` / `llama3.2:3b`, preflighted).
+`--hosted`: Groq `gpt-oss-20b` / `gpt-oss-120b`; pick a judge family unlike the
+agent's. Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
 
 ## Reports, baselines, compare (the CI gate)
 

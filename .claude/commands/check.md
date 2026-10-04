@@ -1,7 +1,7 @@
 Run every quality gate for convoprobe and report the result of each one.
 
-Run from the convoprobe folder. If `uv` is not on PATH, use
-`C:\Users\maria\.local\bin\uv.exe`.
+Run from the convoprobe folder. Run uv. If uv is not on PATH, call it by its
+full path (on Windows usually `%USERPROFILE%\.local\bin\uv.exe`).
 
 1. `uv run ruff check`
 2. `uv run ruff format --check`

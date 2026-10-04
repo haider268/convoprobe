@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 - 2026-10-05
+
+- HTTP adapter: `response_mode: sse` for agents that stream their reply as server-sent
+  events. The reply, tool calls, rate-limit events, and note events come from configurable
+  event fields.
+- HTTP adapter: history mapping. `{{history}}` can use the agent's own role names and field
+  names, and can leave out the new message.
+- HTTP adapter: header values can use `{{conversation_id}}`, filled per request.
+- `examples/sse_agent/`: a local server that streams the toy agent's replies over SSE, with
+  its adapter config.
+- README: a "Test your own agent" guide.
+- Distribution: install from GitHub; not published on PyPI.
+- `examples/vega/`: a real-world run against a site agent that streams over SSE, with its
+  adapter config, scenarios, and results, plus a README section on what it found.
+
 ## 0.1.0 (2026-10-04)
 
 First release.

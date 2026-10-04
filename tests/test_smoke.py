@@ -9,13 +9,13 @@ from convoprobe.config import Settings
 
 
 def test_version_string() -> None:
-    assert convoprobe.__version__ == "0.1.0"
+    assert convoprobe.__version__ == "0.2.0"
 
 
 def test_cli_version() -> None:
     result = CliRunner().invoke(app, ["version"])
     assert result.exit_code == 0
-    assert result.stdout.strip() == "0.1.0"
+    assert result.stdout.strip() == "0.2.0"
 
 
 def test_settings_defaults_without_env(monkeypatch: pytest.MonkeyPatch) -> None:

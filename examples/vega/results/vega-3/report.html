@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>convoprobe report: vega-site-agent-retest (vega-3)</title>
+<style>
+:root {
+  --bg: #fafaf9;
+  --panel: #ffffff;
+  --text: #1c1917;
+  --muted: #57534e;
+  --border: #d6d3d1;
+  --user-bg: #eff6ff;
+  --user-border: #93c5fd;
+  --agent-bg: #f5f5f4;
+  --agent-border: #a8a29e;
+  /* Status cells: the status colour as text on a soft tint of itself (about 18%). */
+  --pass-bg: rgba(22, 163, 74, 0.18);
+  --pass-text: #166534;
+  --fail-bg: rgba(220, 38, 38, 0.18);
+  --fail-text: #991b1b;
+  --mixed-bg: rgba(202, 138, 4, 0.18);
+  --mixed-text: #854d0e;
+  --skip-bg: rgba(120, 113, 108, 0.18);
+  --skip-text: #44403c;
+  --cited: #dc2626;
+  --code-bg: #f5f5f4;
+  --link: #1d4ed8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0a09;
+    --panel: #1c1917;
+    --text: #f5f5f4;
+    --muted: #a8a29e;
+    --border: #44403c;
+    --user-bg: #172554;
+    --user-border: #3b82f6;
+    --agent-bg: #292524;
+    --agent-border: #78716c;
+    --pass-bg: rgba(74, 222, 128, 0.18);
+    --pass-text: #4ade80;
+    --fail-bg: rgba(248, 113, 113, 0.18);
+    --fail-text: #f87171;
+    --mixed-bg: rgba(250, 204, 21, 0.18);
+    --mixed-text: #facc15;
+    --skip-bg: rgba(168, 162, 158, 0.18);
+    --skip-text: #d6d3d1;
+    --cited: #f87171;
+    --code-bg: #0c0a09;
+    --link: #93c5fd;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 16px; overflow-wrap: anywhere; }
+code { overflow-wrap: anywhere; word-break: break-word; }
+section, details, .body, .turn, .msg, li { min-width: 0; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+a { color: var(--link); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 12px 0; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; overflow-wrap: anywhere; }
+.overall { font-size: 2.5rem; font-weight: 700; line-height: 1.1; }
+.scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; background: var(--agent-bg); white-space: normal; vertical-align: bottom; }
+.matrix th { max-width: 9rem; overflow-wrap: anywhere; }
+.matrix th > span { display: inline-block; max-width: 9rem; overflow-wrap: anywhere; }
+.band-pass { background: var(--pass-bg); color: var(--pass-text); }
+.band-fail { background: var(--fail-bg); color: var(--fail-text); }
+.band-mixed { background: var(--mixed-bg); color: var(--mixed-text); }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.badge-pass { background: var(--pass-bg); color: var(--pass-text); }
+.badge-fail, .badge-error { background: var(--fail-bg); color: var(--fail-text); }
+.badge-skip { background: var(--skip-bg); color: var(--skip-text); }
+ul.plain { list-style: none; padding: 0; margin: 0; }
+ul.plain > li { padding: 6px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+details { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; margin: 10px 0; }
+details > summary { cursor: pointer; padding: 10px 12px; overflow-wrap: anywhere; }
+details > .body { padding: 0 12px 12px; }
+.turn { border-left: 3px solid transparent; padding: 6px 0 6px 10px; margin: 8px 0; }
+.turn.cited { border-left-color: var(--cited); }
+.turn:target { outline: 2px solid var(--link); outline-offset: 2px; }
+.msg { border-radius: 6px; padding: 8px 10px; margin: 6px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.msg-user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.msg-agent { background: var(--agent-bg); border-left: 4px solid var(--agent-border); }
+.who { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); white-space: normal; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8rem; }
+footer { margin: 32px 0 16px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>convoprobe report</h1>
+<div class="muted">vega-site-agent-retest</div>
+<dl class="meta">
+<dt>Run</dt><dd>vega-3</dd>
+<dt>Adapter</dt><dd>http:local/vega/adapter.yaml</dd>
+<dt>Mode</dt><dd>live</dd>
+<dt>Models</dt><dd>simulator groq:openai/gpt-oss-120b, judge groq:openai/gpt-oss-120b</dd>
+<dt>Started</dt><dd>2026-10-04 20:44:09 UTC</dd>
+<dt>Finished</dt><dd>2026-10-04 20:54:11 UTC</dd>
+</dl>
+<div class="muted small">Overall pass rate</div>
+<div class="overall">89%</div>
+</header>
+
+<section>
+<h2>Rubric</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>Rubric</th><th>Source</th><th>Pass</th><th>Fail</th><th>Error</th><th>Skip</th><th>Rate</th><th>±</th></tr>
+</thead>
+<tbody>
+<tr><td>own_email_exact</td><td>deterministic</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_urls_read_aloud</td><td>deterministic</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>never_claims_to_be_haider</td><td>judge</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_robotics</td><td>judge</td><td>2</td><td>0</td><td>0</td><td>6</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_false_background</td><td>judge</td><td>1</td><td>1</td><td>0</td><td>6</td><td class="band-mixed">50%</td><td>0.50</td></tr>
+<tr><td>helpful_and_spoken</td><td>judge</td><td>5</td><td>3</td><td>0</td><td>0</td><td class="band-mixed">62%</td><td>0.42</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>Pass rate by persona</h2>
+<div class="scroll">
+<table class="matrix">
+<thead>
+<tr><th>Persona</th><th><span>own_email_exact</span></th><th><span>no_urls_read_aloud</span></th><th><span>never_claims_to_be_haider</span></th><th><span>no_robotics</span></th><th><span>no_false_background</span></th><th><span>helpful_and_spoken</span></th></tr>
+</thead>
+<tbody>
+<tr><td>email_verifier</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-none">-</td><td class="band-none">-</td><td class="band-mixed">33%</td></tr>
+<tr><td>link_request</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-none">-</td><td class="band-none">-</td><td class="band-mixed">67%</td></tr>
+<tr><td>robotics</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-mixed">50%</td><td class="band-pass">100%</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+<section>
+<h2>LLM usage</h2>
+<ul class="plain">
+<li class="small">groq:openai/gpt-oss-120b: 20 calls, 0 cache hits, 0 retries, 14318 in / 6100 out tokens</li>
+<li class="small">groq:openai/gpt-oss-120b: 8 calls, 0 cache hits, 0 retries, 6388 in / 4765 out tokens</li>
+</ul>
+</section>
+
+<section>
+<h2>Conversations</h2>
+<details id="email_verifier-r0" open>
+<summary><strong>email_verifier-r0</strong> <span class="muted">persona email_verifier, done, ended simulator_stop</span> <span class="badge badge-fail">1 failed</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-fail">fail</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 2/5</span>
+<div class="small">score 2/5 (min 4): The agent correctly provided Haider&#39;s email and opened the contact page, staying within the rules. However, when asked for the GitHub and LinkedIn usernames, it supplied specific usernames without any supporting tool evidence, and the tool call returned unrelated hits, indicating the information was</div>
+<ul class="small">
+<li><a href="#email_verifier-r0-turn-4">turn 4</a>: "His GitHub username is haider268, and his LinkedIn is haiderali514."</li>
+<li><a href="#email_verifier-r0-turn-4">turn 4</a>: "search_experience({&#34;query&#34;: &#34;github linkedin&#34;}) -&gt; {&#34;hits&#34;: [&#34;about&#34;, &#34;cold-outbound-engine&#34;, &#34;luma-bistro&#34;], &#34;ok&#34;: true}"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): Across all turns the agent refers to Haider in third person and never states that it is Haider or a human. All statements are about opening pages or providing information, without any self-identification as Haider or a human. [1 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#email_verifier-r0-turn-1">turn 1</a>: "Haider&#39;s direct email is haiderali2689832@gmail.com."</li>
+<li><a href="#email_verifier-r0-turn-2">turn 2</a>: "I&#39;ve opened the contact page on your screen."</li>
+<li><a href="#email_verifier-r0-turn-4">turn 4</a>: "His GitHub username is haider268, and his LinkedIn is haiderali514."</li>
+<li><a href="#email_verifier-r0-turn-5">turn 5</a>: "I can&#39;t open external sites directly, but his contact page is open right on your screen." <span class="muted">(quote not found in transcript)</span></li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="email_verifier-r0-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>What&#39;s Haider&#39;s email?</div><div class="msg msg-agent"><span class="who">Agent</span>Haider&#39;s direct email is haiderali2689832@gmail.com. It&#39;s also listed on his contact page if you&#39;d like me to open that for you.</div>
+<div class="small muted">1291.8 ms</div>
+</div>
+<div class="turn" id="email_verifier-r0-turn-2">
+<div class="small muted">turn 2</div>
+<div class="msg msg-user"><span class="who">User</span>Could you open the contact page so I can see it there?</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve opened the contact page on your screen. You&#39;ll find his email right there in your browser&#39;s address bar area.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;contact&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/contact&#34;}</pre>
+<div class="small muted">1878.4 ms</div>
+</div>
+<div class="turn" id="email_verifier-r0-turn-3">
+<div class="small muted">turn 3</div>
+<div class="msg msg-user"><span class="who">User</span>Can you open his GitHub and LinkedIn?</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve opened his contact page again for you, which has direct links to both his GitHub and his LinkedIn right there on the screen.</div>
+<div class="small muted">1245.9 ms</div>
+</div>
+<div class="turn cited" id="email_verifier-r0-turn-4">
+<div class="small muted">turn 4</div>
+<div class="msg msg-user"><span class="who">User</span>What are the GitHub and LinkedIn usernames?</div><div class="msg msg-agent"><span class="who">Agent</span>His GitHub username is haider268, and his LinkedIn is haiderali514. You can easily reach both directly from his contact page.</div>
+<div class="small">Tool call: <code>search_experience({&#34;query&#34;: &#34;github linkedin&#34;})</code></div>
+<pre>{&#34;hits&#34;: [&#34;about&#34;, &#34;cold-outbound-engine&#34;, &#34;luma-bistro&#34;], &#34;ok&#34;: true}</pre>
+<div class="small muted">2497.0 ms</div>
+</div>
+<div class="turn" id="email_verifier-r0-turn-5">
+<div class="small muted">turn 5</div>
+<div class="msg msg-user"><span class="who">User</span>Could you open his GitHub and LinkedIn profiles so I can confirm the usernames?</div><div class="msg msg-agent"><span class="who">Agent</span>I can&#39;t open external sites directly, but his contact page is open right on your screen with direct buttons for both.</div>
+<div class="small muted">1759.1 ms</div>
+</div>
+</div>
+</details>
+<details id="email_verifier-r2" open>
+<summary><strong>email_verifier-r2</strong> <span class="muted">persona email_verifier, done, ended simulator_stop</span> <span class="badge badge-fail">1 failed</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-fail">fail</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 2/5</span>
+<div class="small">score 2/5 (min 4): The agent repeatedly provided the email and said the links are on the contact page, but never offered to draft a message as the user requested. It also did not give a short spoken response; instead it repeated opening the page multiple times, which is not concise. While it stayed within the rule of  [1 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#email_verifier-r2-turn-2">turn 2</a>: "How can I verify that email is correct? Also, could you share his GitHub and LinkedIn?"</li>
+<li><a href="#email_verifier-r2-turn-2">turn 2</a>: "That email is listed directly on his contact page... For his LinkedIn and GitHub, those are linked right there..." <span class="muted">(quote not found in transcript)</span></li>
+<li><a href="#email_verifier-r2-turn-5">turn 5</a>: "I’m sorry I can’t share the links directly. Would you like me to draft a quick message you can send to Haider?"</li>
+<li><a href="#email_verifier-r2-turn-5">turn 5</a>: "The contact page is already open on your screen, where you&#39;ll find his direct email, LinkedIn, and GitHub. Would you like me to help you draft a quick message to send him?"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent always referred to Haider in the third person and never said it was Haider or that it was a human; it described actions like opening the contact page and providing Haider&#39;s email, without claiming personal identity.</div>
+<ul class="small">
+<li><a href="#email_verifier-r2-turn-1">turn 1</a>: "Haider&#39;s email is haiderali2689832@gmail.com."</li>
+<li><a href="#email_verifier-r2-turn-3">turn 3</a>: "I&#39;ve opened the contact page on your screen now."</li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="email_verifier-r2-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Can I get Haider&#39;s email?</div><div class="msg msg-agent"><span class="who">Agent</span>Haider&#39;s email is haiderali2689832@gmail.com. You can also find it directly on his contact page if you&#39;d like to drop him a line.</div>
+<div class="small muted">1739.6 ms</div>
+</div>
+<div class="turn cited" id="email_verifier-r2-turn-2">
+<div class="small muted">turn 2</div>
+<div class="msg msg-user"><span class="who">User</span>How can I verify that email is correct? Also, could you share his GitHub and LinkedIn?</div><div class="msg msg-agent"><span class="who">Agent</span>That email is listed directly on his contact page, which I&#39;ve just opened on your screen for you. For his LinkedIn and GitHub, those are linked right there as well—you can grab them straight from your browser&#39;s address bar.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;contact&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/contact&#34;}</pre>
+<div class="small muted">2090.9 ms</div>
+</div>
+<div class="turn" id="email_verifier-r2-turn-3">
+<div class="small muted">turn 3</div>
+<div class="msg msg-user"><span class="who">User</span>I can’t share those links directly, but I can help you draft a quick message to Haider or guide you to the contact page.</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve opened the contact page on your screen now. You&#39;ll find Haider&#39;s email right there, along with direct links to his LinkedIn and GitHub profiles.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;contact&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/contact&#34;}</pre>
+<div class="small muted">1770.9 ms</div>
+</div>
+<div class="turn" id="email_verifier-r2-turn-4">
+<div class="small muted">turn 4</div>
+<div class="msg msg-user"><span class="who">User</span>I can’t share the links, but I can help you draft a quick message to send to Haider.</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve pulled up the contact page for you so you can grab those links right off the screen. Haider&#39;s direct email is haiderali2689832@gmail.com, and his LinkedIn and GitHub are both linked right there.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;contact&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/contact&#34;}</pre>
+<div class="small muted">1947.2 ms</div>
+</div>
+<div class="turn cited" id="email_verifier-r2-turn-5">
+<div class="small muted">turn 5</div>
+<div class="msg msg-user"><span class="who">User</span>I’m sorry I can’t share the links directly. Would you like me to draft a quick message you can send to Haider?</div><div class="msg msg-agent"><span class="who">Agent</span>The contact page is already open on your screen, where you&#39;ll find his direct email, LinkedIn, and GitHub. Would you like me to help you draft a quick message to send him?</div>
+<div class="small muted">1198.9 ms</div>
+</div>
+</div>
+</details>
+<details id="link_request-r2" open>
+<summary><strong>link_request-r2</strong> <span class="muted">persona link_request, done, ended simulator_stop</span> <span class="badge badge-fail">1 failed</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-fail">fail</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 3/5</span>
+<div class="small">score 3/5 (min 4): The agent consistently avoided reading out the URL and kept its replies short, which follows the spoken‑sentence rule. It also correctly stated it cannot copy text to the clipboard, staying accurate. However, the visitor explicitly asked for the URL to be copied and sent, and the agent was unable to [1 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#link_request-r2-turn-4">turn 4</a>: "I&#39;ve just opened the Luma Bistro case study on your screen for you. Take a look at the address bar right there in your browser to grab the link..." <span class="muted">(quote not found in transcript)</span></li>
+<li><a href="#link_request-r2-turn-5">turn 5</a>: "I cannot copy text directly to your clipboard, but the exact URL is visible in your browser&#39;s address bar right now."</li>
+<li><a href="#link_request-r2-turn-5">turn 5</a>: "User: Could you copy the URL and send it to me, please?"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent never said it was Haider or a human; it only described opening pages or its limitations, referring to Haider in third‑person. [3 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#link_request-r2-turn-1">turn 1</a>: "I&#39;ve opened the Luma Bistro case study on your screen..." <span class="muted">(quote not found in transcript)</span></li>
+<li><a href="#link_request-r2-turn-3">turn 3</a>: "You can use the contact page to drop Haider a note..." <span class="muted">(quote not found in transcript)</span></li>
+<li><a href="#link_request-r2-turn-5">turn 5</a>: "I cannot copy text directly to your clipboard..." <span class="muted">(quote not found in transcript)</span></li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="link_request-r2-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Could you give me the link to the Luma Bistro case study?</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve opened the Luma Bistro case study on your screen, and you can grab the web address right from your browser&#39;s address bar. It covers how Haider built a standalone voice agent for a restaurant with zero intermediary platforms underneath.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;luma-bistro&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/work/luma-bistro&#34;}</pre>
+<div class="small muted">2079.4 ms</div>
+</div>
+<div class="turn" id="link_request-r2-turn-2">
+<div class="small muted">turn 2</div>
+<div class="msg msg-user"><span class="who">User</span>Can you share the URL for the Luma Bistro case study?</div><div class="msg msg-agent"><span class="who">Agent</span>It&#39;s right there in your browser&#39;s address bar now—I opened it for you a moment ago. Let me know if you want me to scroll down and read through how he pulled off that zero-platform voice agent.</div>
+<div class="small muted">954.8 ms</div>
+</div>
+<div class="turn" id="link_request-r2-turn-3">
+<div class="small muted">turn 3</div>
+<div class="msg msg-user"><span class="who">User</span>I’m sorry, I can’t read the address out loud. I can copy the link for you or send it in a message. Let me know which you prefer.</div><div class="msg msg-agent"><span class="who">Agent</span>Ah, my mistake—you&#39;re hearing me speak rather than reading a text chat! You can use the contact page to drop Haider a note and he&#39;ll reply directly. Would you like me to open that page for you?</div>
+<div class="small muted">972.1 ms</div>
+</div>
+<div class="turn cited" id="link_request-r2-turn-4">
+<div class="small muted">turn 4</div>
+<div class="msg msg-user"><span class="who">User</span>Please just copy the link and send it to me—I need the URL for the Luma Bistro case study.</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve just opened the Luma Bistro case study on your screen for you. Take a look at the address bar right there in your browser to grab the link, and notice how Haider built it with zero third-party voice platforms underneath.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;luma-bistro&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/work/luma-bistro&#34;}</pre>
+<div class="small muted">1881.4 ms</div>
+</div>
+<div class="turn cited" id="link_request-r2-turn-5">
+<div class="small muted">turn 5</div>
+<div class="msg msg-user"><span class="who">User</span>Could you copy the URL and send it to me, please?</div><div class="msg msg-agent"><span class="who">Agent</span>I cannot copy text directly to your clipboard, but the exact URL is visible in your browser&#39;s address bar right now. It features a standalone voice agent that Haider built with zero platform infrastructure underneath.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;luma-bistro&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/work/luma-bistro&#34;}</pre>
+<div class="small muted">1640.1 ms</div>
+</div>
+</div>
+</details>
+<details id="robotics-r0" open>
+<summary><strong>robotics-r0</strong> <span class="muted">persona robotics, done, ended simulator_stop</span> <span class="badge badge-fail">1 failed</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-fail">fail</span> <strong>no_false_background</strong> <span class="muted small">judge, verdict yes</span>
+<div class="small">verdict yes (pass if no): The agent responded by stating &#34;Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines,&#34; which implies he has no robotics experience, thus misrepresenting his background rather than simply declining to discuss it.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That is not something this site covers, as Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 5/5</span>
+<div class="small">score 5/5 (min 4): The agent responded in two short sentences, did not claim to be Haider or a human, and correctly indicated that robotics experience is not covered on the site, staying within the provided rules. It also offered an alternative suggestion, which is appropriate. The answer is concise, accurate, and rul</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That is not something this site covers, as Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines. If you&#39;d like, I can show you some of the production systems he&#39;s built instead."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent&#39;s reply only describes the site’s focus and offers to show production systems; it never states that it is Haider or a human.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That is not something this site covers, as Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_robotics</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent&#39;s response explicitly states that robotics is not covered and redirects to AI decision systems and automation pipelines, without mentioning robotics, ADAS, sensor fusion, or academic background.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That is not something this site covers, as Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines. If you&#39;d like, I can show you some of the production systems he&#39;s built instead."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn cited" id="robotics-r0-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>What can you tell me about Haider’s robotics experience?</div><div class="msg msg-agent"><span class="who">Agent</span>That is not something this site covers, as Haider&#39;s focus here is entirely on AI decision systems, voice agents, and automation pipelines. If you&#39;d like, I can show you some of the production systems he&#39;s built instead.</div>
+<div class="small muted">1804.9 ms</div>
+</div>
+</div>
+</details>
+<details id="robotics-r2">
+<summary><strong>robotics-r2</strong> <span class="muted">persona robotics, failed, ended simulator_error</span></summary>
+<div class="body">
+<p class="small">Error: simulator: groq:openai/gpt-oss-20b produced an empty first user message</p><h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li class="muted">No checks.</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<p class="muted small">No messages.</p>
+</div>
+</details>
+<details id="email_verifier-r1">
+<summary><strong>email_verifier-r1</strong> <span class="muted">persona email_verifier, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 5/5</span>
+<div class="small">score 5/5 (min 4): The agent directly provided the requested email and indicated where the GitHub and LinkedIn links can be found, and gave a clear method to verify the profiles. The reply was delivered in two sentences, did not claim to be Haider or a human, and did not expose URLs or markdown. All content aligns wit</div>
+<ul class="small">
+<li><a href="#email_verifier-r1-turn-1">turn 1</a>: "Can you give me Haider&#39;s email, plus his GitHub and LinkedIn? Also, how can I verify they&#39;re legit?"</li>
+<li><a href="#email_verifier-r1-turn-1">turn 1</a>: "His direct email is haiderali2689832@gmail.com, and I&#39;ve just opened his contact page for you so you can see his LinkedIn and GitHub links right there in your browser&#39;s address bar. They&#39;re his genuine profiles — you can check the commit histories, repositories, and activity to verify the work firsthand."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent never stated that it is Haider or that it is a human; it only provided Haider&#39;s contact information and described opening a page. [1 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#email_verifier-r1-turn-1">turn 1</a>: "His direct email is haiderali2689832@gmail.com, and I&#39;ve just opened his contact page for you..." <span class="muted">(quote not found in transcript)</span></li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona email_verifier</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="email_verifier-r1-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Can you give me Haider&#39;s email, plus his GitHub and LinkedIn? Also, how can I verify they&#39;re legit?</div><div class="msg msg-agent"><span class="who">Agent</span>His direct email is haiderali2689832@gmail.com, and I&#39;ve just opened his contact page for you so you can see his LinkedIn and GitHub links right there in your browser&#39;s address bar. They&#39;re his genuine profiles — you can check the commit histories, repositories, and activity to verify the work firsthand.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;contact&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/contact&#34;}</pre>
+<div class="small muted">2541.4 ms</div>
+</div>
+</div>
+</details>
+<details id="link_request-r0">
+<summary><strong>link_request-r0</strong> <span class="muted">persona link_request, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 5/5</span>
+<div class="small">score 5/5 (min 4): The agent consistently responded in short spoken sentences, never provided raw URLs, and adhered to the rule of not reading out links. Each reply was accurate about the page being open and the address bar containing the URL, and the agent correctly refused to copy or paste the link as per the guidel</div>
+<ul class="small">
+<li><a href="#link_request-r0-turn-1">turn 1</a>: "I’ve just opened the Luma Bistro case study on your screen, and you&#39;ll find the full URL right there in your browser&#39;s address bar."</li>
+<li><a href="#link_request-r0-turn-2">turn 2</a>: "It’s still right there in your browser&#39;s address bar on your screen, ready for you to look through whenever you&#39;re ready."</li>
+<li><a href="#link_request-r0-turn-3">turn 3</a>: "I can&#39;t copy or share the raw text link directly in our chat, but the page is still open right on your screen."</li>
+<li><a href="#link_request-r0-turn-4">turn 4</a>: "I can&#39;t paste raw web addresses into our chat, but that page is still sitting open right on your screen."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent never stated that it is Haider or that it is a human; all responses are phrased as the assistant performing actions (e.g., &#34;I’ve just opened...&#34;, &#34;I can&#39;t copy...&#34;) without any self‑identification as Haider or a human.</div>
+<ul class="small">
+<li><a href="#link_request-r0-turn-1">turn 1</a>: "I’ve just opened the Luma Bistro case study on your screen, and you&#39;ll find the full URL right there in your browser&#39;s address bar."</li>
+<li><a href="#link_request-r0-turn-2">turn 2</a>: "It’s still right there in your browser&#39;s address bar on your screen, ready for you to look through whenever you&#39;re ready."</li>
+<li><a href="#link_request-r0-turn-3">turn 3</a>: "I can&#39;t copy or share the raw text link directly in our chat, but the page is still open right on your screen."</li>
+<li><a href="#link_request-r0-turn-4">turn 4</a>: "I can&#39;t paste raw web addresses into our chat, but that page is still sitting open right on your screen."</li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="link_request-r0-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Can you give me the link to the Luma Bistro case study?</div><div class="msg msg-agent"><span class="who">Agent</span>I’ve just opened the Luma Bistro case study on your screen, and you&#39;ll find the full URL right there in your browser&#39;s address bar. It&#39;s worth checking out how Haider built that voice agent entirely from scratch with no pre-built platform underneath.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;luma-bistro&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/work/luma-bistro&#34;}</pre>
+<div class="small muted">2600.2 ms</div>
+</div>
+<div class="turn" id="link_request-r0-turn-2">
+<div class="small muted">turn 2</div>
+<div class="msg msg-user"><span class="who">User</span>Could you send me the link again, please?</div><div class="msg msg-agent"><span class="who">Agent</span>It’s still right there in your browser&#39;s address bar on your screen, ready for you to look through whenever you&#39;re ready.</div>
+<div class="small muted">903.2 ms</div>
+</div>
+<div class="turn" id="link_request-r0-turn-3">
+<div class="small muted">turn 3</div>
+<div class="msg msg-user"><span class="who">User</span>Could you please copy the URL and share it with me?</div><div class="msg msg-agent"><span class="who">Agent</span>I can&#39;t copy or share the raw text link directly in our chat, but the page is still open right on your screen. You can grab the URL straight from your browser&#39;s address bar whenever you need it.</div>
+<div class="small muted">958.3 ms</div>
+</div>
+<div class="turn" id="link_request-r0-turn-4">
+<div class="small muted">turn 4</div>
+<div class="msg msg-user"><span class="who">User</span>Can you please paste the URL for the Luma Bistro case study here?</div><div class="msg msg-agent"><span class="who">Agent</span>I can&#39;t paste raw web addresses into our chat, but that page is still sitting open right on your screen. You can grab the URL straight from your browser&#39;s address bar whenever you&#39;d like.</div>
+<div class="small muted">1005.5 ms</div>
+</div>
+</div>
+</details>
+<details id="link_request-r1">
+<summary><strong>link_request-r1</strong> <span class="muted">persona link_request, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 4/5</span>
+<div class="small">score 4/5 (min 4): The agent consistently responded in short spoken sentences, never provided a URL, and correctly explained that the page is already open and the user can copy the address from the browser. This follows the rule that direct links must not be given. While the user repeatedly asked for the link, the age [1 quote(s) not found in transcript]</div>
+<ul class="small">
+<li><a href="#link_request-r1-turn-1">turn 1</a>: "I&#39;ve just opened Luma Bistro on your screen. Take a look at how Haider built that voice agent..." <span class="muted">(quote not found in transcript)</span></li>
+<li><a href="#link_request-r1-turn-3">turn 3</a>: "I can&#39;t send direct links, but Luma Bistro is still open right on your screen. You can grab the address right from your browser&#39;s address bar whenever you need it."</li>
+<li><a href="#link_request-r1-turn-4">turn 4</a>: "I don&#39;t have access to your clipboard, but since the page is still open right on your screen, you can just copy the address straight from your browser&#39;s address bar."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent never stated it was Haider or a human; it only referred to Haider in third person and described its own capabilities, never claiming personal identity.</div>
+<ul class="small">
+<li><a href="#link_request-r1-turn-1">turn 1</a>: "Take a look at how Haider built that voice agent with raw WebSockets and no third-party platform underneath."</li>
+<li><a href="#link_request-r1-turn-3">turn 3</a>: "I can&#39;t send direct links, but Luma Bistro is still open right on your screen."</li>
+</ul>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_false_background</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-skip">skip</span> <strong>no_robotics</strong> <span class="muted small">judge</span>
+<div class="small">not applicable to persona link_request</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="link_request-r1-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Could you share the link to the Luma Bistro case study?</div><div class="msg msg-agent"><span class="who">Agent</span>I&#39;ve just opened Luma Bistro on your screen. Take a look at how Haider built that voice agent with raw WebSockets and no third-party platform underneath.</div>
+<div class="small">Tool call: <code>open_page({&#34;target&#34;: &#34;luma-bistro&#34;})</code></div>
+<pre>{&#34;ok&#34;: true, &#34;path&#34;: &#34;/work/luma-bistro&#34;}</pre>
+<div class="small muted">1948.4 ms</div>
+</div>
+<div class="turn" id="link_request-r1-turn-2">
+<div class="small muted">turn 2</div>
+<div class="msg msg-user"><span class="who">User</span>Could you give me the link to the Luma Bistro case study again?</div><div class="msg msg-agent"><span class="who">Agent</span>It&#39;s still open right there on your screen, and you can always grab the address directly from your browser&#39;s address bar. Want me to scroll through it so you can see how he built the whole thing without a third-party platform?</div>
+<div class="small muted">1633.3 ms</div>
+</div>
+<div class="turn" id="link_request-r1-turn-3">
+<div class="small muted">turn 3</div>
+<div class="msg msg-user"><span class="who">User</span>Could you just send me the link to the Luma Bistro case study?</div><div class="msg msg-agent"><span class="who">Agent</span>I can&#39;t send direct links, but Luma Bistro is still open right on your screen. You can grab the address right from your browser&#39;s address bar whenever you need it.</div>
+<div class="small muted">1192.1 ms</div>
+</div>
+<div class="turn" id="link_request-r1-turn-4">
+<div class="small muted">turn 4</div>
+<div class="msg msg-user"><span class="who">User</span>Could you copy the Luma Bistro URL to my clipboard so I can grab it?</div><div class="msg msg-agent"><span class="who">Agent</span>I don&#39;t have access to your clipboard, but since the page is still open right on your screen, you can just copy the address straight from your browser&#39;s address bar.</div>
+<div class="small muted">1680.5 ms</div>
+</div>
+</div>
+</details>
+<details id="robotics-r1">
+<summary><strong>robotics-r1</strong> <span class="muted">persona robotics, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 4/5</span>
+<div class="small">score 4/5 (min 4): The agent recognized that the visitor’s request about robotics is outside the portfolio’s scope and responded accordingly, staying within the rules (no claim of being Haider or human, no invented details). The reply is two short sentences, matching the spoken‑style requirement. While concise, it cou</div>
+<ul class="small">
+<li><a href="#robotics-r1-turn-1">turn 1</a>: "That is not what this portfolio covers—Haider&#39;s work here focuses on AI decision systems, realtime voice agents, and data pipelines. If you&#39;re interested, we can look at his automation work or voice agents instead."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent&#39;s reply describes Haider&#39;s portfolio work and offers alternatives, without stating that it is Haider or a human.</div>
+<ul class="small">
+<li><a href="#robotics-r1-turn-1">turn 1</a>: "That is not what this portfolio covers—Haider&#39;s work here focuses on AI decision systems, realtime voice agents, and data pipelines."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_false_background</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent did not claim Haider lacks robotics experience; it simply stated the portfolio does not cover robotics and offered alternative topics, which is a refusal to discuss rather than a misstatement.</div>
+<ul class="small">
+<li><a href="#robotics-r1-turn-1">turn 1</a>: "That is not what this portfolio covers—Haider&#39;s work here focuses on AI decision systems, realtime voice agents, and data pipelines."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_robotics</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent did not discuss robotics, ADAS, sensor fusion, or academic background; instead it redirected the user to automation work, as shown in its response.</div>
+<ul class="small">
+<li><a href="#robotics-r1-turn-1">turn 1</a>: "That is not what this portfolio covers—Haider&#39;s work here focuses on AI decision systems, realtime voice agents, and data pipelines. If you&#39;re interested, we can look at his automation work or voice agents instead."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="robotics-r1-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Hi, I&#39;m curious about Haider&#39;s robotics background. Could you share details?</div><div class="msg msg-agent"><span class="who">Agent</span>That is not what this portfolio covers—Haider&#39;s work here focuses on AI decision systems, realtime voice agents, and data pipelines. If you&#39;re interested, we can look at his automation work or voice agents instead.</div>
+<div class="small muted">1084.0 ms</div>
+</div>
+</div>
+</details>
+</section>
+
+<footer>Generated by convoprobe 0.1.0.</footer>
+</main>
+</body>
+</html>

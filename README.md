@@ -9,10 +9,12 @@ Stress-test conversational agents with simulated users, scored checks, and CI re
 ## Run it in 3 commands
 
 ```
-pip install convoprobe
+pip install "git+https://github.com/haider268/convoprobe"
 convoprobe demo
 convoprobe demo --out demo-results
 ```
+
+convoprobe is installed from GitHub; it is not on PyPI.
 
 `convoprobe demo` runs a toy shop agent twice: a correct v1 and a v2 with a prompt bug. The
 LLM simulator and judge answers replay a recorded cassette, so the demo needs no API keys and
@@ -24,6 +26,25 @@ From source:
 ```
 git clone https://github.com/haider268/convoprobe && cd convoprobe && uv sync && uv run convoprobe demo
 ```
+
+## Test your own agent
+
+1. Connect it. For an agent behind HTTP, write a small config file:
+   [examples/http_agent/adapter.yaml](examples/http_agent/adapter.yaml) for a JSON reply, or
+   [examples/sse_agent/adapter.yaml](examples/sse_agent/adapter.yaml) for a streaming reply.
+   A Python function (`module.path:attr`) or a compiled LangGraph graph works too.
+2. Write a scenario: the agent description, personas, and rubric. Use
+   [examples/scenarios/clinic_intake.yaml](examples/scenarios/clinic_intake.yaml) as a template.
+3. Run it, then save a baseline and compare later runs against it:
+
+   ```
+   convoprobe run my_scenario.yaml --adapter http:my_agent.yaml --hosted --html
+   convoprobe baseline save results/<run-id> --path ci/baseline.json
+   convoprobe compare results/<new-run-id> --baseline ci/baseline.json
+   ```
+
+Test against a local or staging copy of the agent, never a production agent that can send
+messages, book meetings, or write to real systems.
 
 ## The problem
 
@@ -56,7 +77,8 @@ flowchart LR
 - Personas and simulator: `src/convoprobe/simulator/` (scripted personas, the LLM simulator,
   persona generation).
 - Adapters: `src/convoprobe/adapters/` (`callable.py`, `langgraph_adapter.py`,
-  `http_adapter.py`).
+  `http_adapter.py`). The HTTP adapter also supports agents that stream their reply as
+  server-sent events (`response_mode: sse`).
 - Scoring: `src/convoprobe/scoring/deterministic.py` (tool called, tool not called, tool
   order, tool args, regex present or absent, max turns, max latency) and
   `src/convoprobe/scoring/judge.py`.
@@ -136,6 +158,24 @@ Both tables, the reading notes, and the per-label rows are in
 - On the 14 toy-shop conversations, every judge agreed with the ground truth taken from recorded
   tool calls on honest_about_refund (14 of 14, the 100% column above).
 
+### Real-world run: a production site agent
+
+convoprobe was run against Vega, the voice agent on https://haiderali-dev.vercel.app. Vega streams
+over SSE, calls tools, and runs on Gemini. The deployed site was never tested: Vega ran as a local
+copy with its booking calendar disconnected. Four runs, 32 conversations in total, found these
+problems and checked each fix:
+
+| problem found | fix in Vega | retest result |
+|---|---|---|
+| Read out `github.com` and `linkedin.com` addresses (vega-1) | prompt wording | no URL read aloud in 11 of 11 conversations (vega-2) |
+| Opened the same page 4 times when asked for a link (vega-1) | link rule in the prompt | page opened once in 4 of 6 link and email conversations, three times in 2 (vega-3) |
+| Gave the contact email with one extra digit (vega-2) | code guard that writes the exact address | email exact in all 4 mentions (vega-3) |
+| Said "Haider doesn't do robotics" (vega-1) | a fixed sentence for robotics | both completed robotics conversations passed both checks (vega-4) |
+
+Latency per agent turn: p50 2.0 s and p95 2.7 s in vega-1, p50 1.9 s and p95 3.1 s in vega-2.
+Details, numbers, and what the run showed about convoprobe's own limits are in
+[examples/vega/README.md](examples/vega/README.md).
+
 ## Design decisions
 
 - **Rules in code, language in the LLM.** Tool order, tool arguments, regex, turn and latency
@@ -174,6 +214,9 @@ Both tables, the reading notes, and the per-label rows are in
 - Free tiers have limits. Groq allows 8,000 tokens per minute and 1,000 requests per day per
   model (verified 2026-10-04); qwen3.8-27b also has an output limit of 1,000 tokens per minute,
   so it needs `GROQ_MAX_TOKENS=800`.
+- The judge cannot verify grounding when an agent does not expose the text it retrieved. On
+  Vega, whose stream reports only page slugs, it marked figures as invented that it had no way
+  to check.
 - The toy shop and clinic agents are examples, not production agents. The clinic is fictional.
 - Voice agents are not covered.
 
@@ -213,7 +256,8 @@ If you already use one of these tools, the calibration approach in calibration/ 
 
 - Python 3.11+, uv, pydantic v2, typer, rich, jinja2, httpx, langchain-core.
 - Optional extras: `langgraph`, `langchain-ollama`, `langchain-groq`, `langchain-google-genai`
-  (`pip install "convoprobe[groq]"` and so on). The core package imports without them.
+  (for example `pip install "convoprobe[groq] @ git+https://github.com/haider268/convoprobe"`).
+  The core package imports without them.
 - Groq: free tier, no card. Limits per model as above (verified 2026-10-04). Groq blocks VPN and
   datacenter IPs with a 403, so turn a VPN off for live runs.
 - Ollama: local models run on CPU; `qwen2.5:3b` and `llama3.2:3b` are the defaults for

@@ -8,7 +8,7 @@ code out. Status: 0.1.0 (README, example CI gate in `ci/`, judge calibration).
 
 - Git identity is local: `haider268` / `haider268@users.noreply.github.com`
   (the global one is a company account). Check `git log --format="%an <%ae>"`.
-- Never push, add a remote, or upload to PyPI. No downloads over about 200 MB.
+- Never push without the owner's go. No downloads over about 200 MB.
 - No system installs; everything goes through uv. Rules in code, language in the LLM.
 - Keys only in the git-ignored `.env`. Never print, log, read out, or commit one.
 - Fake data only (`.example` domains). Write files with the file tool, not heredocs.
@@ -86,17 +86,17 @@ agent's. Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`
 
 ## Adapters
 
-`--adapter` takes `module.path:attr` (the cwd is on `sys.path`, so
-`examples.toy_support_agent.graph:adapter_v1` works from the repo root) or
-`http:<config.yaml>`. A compiled LangGraph graph is wrapped automatically.
+`--adapter` takes `module.path:attr` (cwd is on `sys.path`) or `http:<config.yaml>`.
 - `CallableAdapter`: `(history) -> str | AgentTurn`, sync or async.
-- `LangGraphAdapter(graph, resume=...)`: checkpointer, fresh thread per
-  conversation, interrupts resumed with `resume` up to `max_resumes`.
+- `LangGraphAdapter(graph, resume=...)` (graphs are wrapped automatically): checkpointer,
+  fresh thread per conversation, interrupts resumed with `resume` up to `max_resumes`.
 - `HTTPAdapter`: YAML `url`, `request_template` (`{{message}}` and friends),
-  dotted `text_path`, `headers` with `${ENV}`; 408/429/5xx retry.
-- `tests/test_adapter_equivalence.py` runs the demo through all three shapes and
-  requires identical results. Keep it green. The toy agent reads only whole
-  4-digit order ids, kept on purpose as a demo finding.
+  dotted `text_path`, `headers` with `${ENV}` and `{{conversation_id}}`; 408/429/5xx retry.
+  `response_mode: sse`: reply = `sse_text_field` of the last `sse_text_event`; `sse_tool_event`
+  makes tool calls; `sse_transient_events` raise `TransientError` after the stream (never
+  retried in the turn). `history_roles` / `history_includes_current` shape `{{history}}`.
+- Equivalence tests (`test_adapter_equivalence.py`, `test_http_sse.py`) require identical
+  results across shapes; keep them green. The toy agent reads only 4-digit order ids.
 
 ## Layout
 
@@ -138,8 +138,8 @@ agent's. Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`
 - New adapter: three async `AgentAdapter` methods, `TransientError`, equivalence test.
 - New provider: `models/factory.py` (`PROVIDERS`, `_CLASSES`), an extra, limits
   in `config.py` and `LLMRegistry.limiter`, `registry.STRUCTURED_METHOD`.
-- Release: version in two places, `pyproject.toml` and `src/convoprobe/__init__.py`
-  (tests check it; then `uv lock --offline`), plus a `CHANGELOG.md` entry.
+- Release: version in `pyproject.toml` and `__init__.py`, `uv lock --offline`, CHANGELOG.
+  Distribution is GitHub only (owner decision). Do not publish to PyPI or TestPyPI.
 
 ## Contracts
 

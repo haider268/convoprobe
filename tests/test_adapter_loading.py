@@ -45,7 +45,10 @@ def test_repo_http_example_loads(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.parametrize(
     ("text", "message"),
     [
-        (HTTP_YAML.replace("text_path: reply\n", ""), "text_path: Field required"),
+        (
+            HTTP_YAML.replace("text_path: reply\n", ""),
+            ".yaml: text_path is required when response_mode is json",
+        ),
         (HTTP_YAML + "retries: 3\n", "retries: Extra inputs are not permitted"),
         (HTTP_YAML.replace("type: http", "type: grpc"), "type: Input should be 'http'"),
         ("- just\n- a list\n", "expected a mapping at the top level"),

@@ -1,0 +1,24 @@
+# Vega, the portfolio site agent, running LOCALLY (npm run dev) with the Google
+# Calendar keys blanked, so no real booking or invitation is possible.
+# Never point this at the deployed site.
+type: http
+url: http://127.0.0.1:4310/api/agent
+headers:
+  # Vega rate-limits per visitor IP (24 requests / 10 min). One fake visitor
+  # per conversation keeps simulated visitors from sharing a bucket.
+  x-forwarded-for: "convoprobe-{{conversation_id}}"
+request_template:
+  text: "{{message}}"
+  history: "{{history}}"
+  tz: Europe/London
+  path: /
+response_mode: sse
+sse_text_event: done
+sse_text_field: text
+sse_tool_event: tool
+sse_tool_result_fields: [ok, path, reference, hits]
+sse_transient_events: [limited]
+sse_note_events: [degraded]
+history_roles: {user: user, agent: model}
+history_includes_current: false
+timeout_s: 90

@@ -14,8 +14,9 @@ dist/
 coverage.xml
 htmlcov/
 
-# Secrets
+# Secrets, and private test configs that are never committed
 .env
+local/
 
 # convoprobe state and output. A baseline meant to be committed is saved
 # elsewhere with --path (for example ci/baseline.json).
@@ -25,3 +26,4 @@ htmlcov/
 .convoprobe/*.db-*
 results/
 !calibration/results/
+!examples/vega/results/

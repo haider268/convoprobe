@@ -106,4 +106,4 @@ def test_run_scenario_mismatch(tmp_path: Path) -> None:
 
 
 def test_version() -> None:
-    assert runner.invoke(app, ["version"]).stdout.strip() == "0.1.0"
+    assert runner.invoke(app, ["version"]).stdout.strip() == "0.2.0"

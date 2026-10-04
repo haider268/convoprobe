@@ -44,10 +44,11 @@ def _load_http(path_text: str) -> HTTPAdapter:
     try:
         config = HTTPAdapterConfig(**data)
     except ValidationError as exc:
-        lines = [
-            f"adapter config {path}: {'.'.join(str(p) for p in error['loc'])}: {error['msg']}"
-            for error in exc.errors()
-        ]
+        lines = []
+        for error in exc.errors():
+            loc = ".".join(str(p) for p in error["loc"])
+            message = error["msg"].removeprefix("Value error, ")
+            lines.append(f"adapter config {path}: {loc + ': ' if loc else ''}{message}")
         raise AdapterLoadError("\n".join(lines)) from None
     try:
         return HTTPAdapter(config)

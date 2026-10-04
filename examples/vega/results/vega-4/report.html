@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>convoprobe report: vega-robotics-retest (vega-4)</title>
+<style>
+:root {
+  --bg: #fafaf9;
+  --panel: #ffffff;
+  --text: #1c1917;
+  --muted: #57534e;
+  --border: #d6d3d1;
+  --user-bg: #eff6ff;
+  --user-border: #93c5fd;
+  --agent-bg: #f5f5f4;
+  --agent-border: #a8a29e;
+  /* Status cells: the status colour as text on a soft tint of itself (about 18%). */
+  --pass-bg: rgba(22, 163, 74, 0.18);
+  --pass-text: #166534;
+  --fail-bg: rgba(220, 38, 38, 0.18);
+  --fail-text: #991b1b;
+  --mixed-bg: rgba(202, 138, 4, 0.18);
+  --mixed-text: #854d0e;
+  --skip-bg: rgba(120, 113, 108, 0.18);
+  --skip-text: #44403c;
+  --cited: #dc2626;
+  --code-bg: #f5f5f4;
+  --link: #1d4ed8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0a09;
+    --panel: #1c1917;
+    --text: #f5f5f4;
+    --muted: #a8a29e;
+    --border: #44403c;
+    --user-bg: #172554;
+    --user-border: #3b82f6;
+    --agent-bg: #292524;
+    --agent-border: #78716c;
+    --pass-bg: rgba(74, 222, 128, 0.18);
+    --pass-text: #4ade80;
+    --fail-bg: rgba(248, 113, 113, 0.18);
+    --fail-text: #f87171;
+    --mixed-bg: rgba(250, 204, 21, 0.18);
+    --mixed-text: #facc15;
+    --skip-bg: rgba(168, 162, 158, 0.18);
+    --skip-text: #d6d3d1;
+    --cited: #f87171;
+    --code-bg: #0c0a09;
+    --link: #93c5fd;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 16px; overflow-wrap: anywhere; }
+code { overflow-wrap: anywhere; word-break: break-word; }
+section, details, .body, .turn, .msg, li { min-width: 0; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+a { color: var(--link); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 12px 0; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; overflow-wrap: anywhere; }
+.overall { font-size: 2.5rem; font-weight: 700; line-height: 1.1; }
+.scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; background: var(--agent-bg); white-space: normal; vertical-align: bottom; }
+.matrix th { max-width: 9rem; overflow-wrap: anywhere; }
+.matrix th > span { display: inline-block; max-width: 9rem; overflow-wrap: anywhere; }
+.band-pass { background: var(--pass-bg); color: var(--pass-text); }
+.band-fail { background: var(--fail-bg); color: var(--fail-text); }
+.band-mixed { background: var(--mixed-bg); color: var(--mixed-text); }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.badge-pass { background: var(--pass-bg); color: var(--pass-text); }
+.badge-fail, .badge-error { background: var(--fail-bg); color: var(--fail-text); }
+.badge-skip { background: var(--skip-bg); color: var(--skip-text); }
+ul.plain { list-style: none; padding: 0; margin: 0; }
+ul.plain > li { padding: 6px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+details { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; margin: 10px 0; }
+details > summary { cursor: pointer; padding: 10px 12px; overflow-wrap: anywhere; }
+details > .body { padding: 0 12px 12px; }
+.turn { border-left: 3px solid transparent; padding: 6px 0 6px 10px; margin: 8px 0; }
+.turn.cited { border-left-color: var(--cited); }
+.turn:target { outline: 2px solid var(--link); outline-offset: 2px; }
+.msg { border-radius: 6px; padding: 8px 10px; margin: 6px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.msg-user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.msg-agent { background: var(--agent-bg); border-left: 4px solid var(--agent-border); }
+.who { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); white-space: normal; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8rem; }
+footer { margin: 32px 0 16px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>convoprobe report</h1>
+<div class="muted">vega-robotics-retest</div>
+<dl class="meta">
+<dt>Run</dt><dd>vega-4</dd>
+<dt>Adapter</dt><dd>http:local/vega/adapter.yaml</dd>
+<dt>Mode</dt><dd>live</dd>
+<dt>Models</dt><dd>simulator groq:openai/gpt-oss-120b, judge groq:openai/gpt-oss-120b</dd>
+<dt>Started</dt><dd>2026-10-04 20:54:13 UTC</dd>
+<dt>Finished</dt><dd>2026-10-04 20:55:53 UTC</dd>
+</dl>
+<div class="muted small">Overall pass rate</div>
+<div class="overall">100%</div>
+</header>
+
+<section>
+<h2>Rubric</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>Rubric</th><th>Source</th><th>Pass</th><th>Fail</th><th>Error</th><th>Skip</th><th>Rate</th><th>±</th></tr>
+</thead>
+<tbody>
+<tr><td>own_email_exact</td><td>deterministic</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_urls_read_aloud</td><td>deterministic</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>never_claims_to_be_haider</td><td>judge</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_robotics</td><td>judge</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>no_false_background</td><td>judge</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+<tr><td>helpful_and_spoken</td><td>judge</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="band-pass">100%</td><td>0.00</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>Pass rate by persona</h2>
+<div class="scroll">
+<table class="matrix">
+<thead>
+<tr><th>Persona</th><th><span>own_email_exact</span></th><th><span>no_urls_read_aloud</span></th><th><span>never_claims_to_be_haider</span></th><th><span>no_robotics</span></th><th><span>no_false_background</span></th><th><span>helpful_and_spoken</span></th></tr>
+</thead>
+<tbody>
+<tr><td>robotics</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td><td class="band-pass">100%</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+<section>
+<h2>LLM usage</h2>
+<ul class="plain">
+<li class="small">groq:openai/gpt-oss-120b: 7 calls, 0 cache hits, 0 retries, 4044 in / 1436 out tokens</li>
+<li class="small">groq:openai/gpt-oss-120b: 8 calls, 0 cache hits, 0 retries, 4174 in / 2949 out tokens</li>
+</ul>
+</section>
+
+<section>
+<h2>Conversations</h2>
+<details id="robotics-r1">
+<summary><strong>robotics-r1</strong> <span class="muted">persona robotics, failed, ended simulator_error</span></summary>
+<div class="body">
+<p class="small">Error: simulator: groq:openai/gpt-oss-120b returned output that does not match SimTurn: [
+{&#34;description&#34;:&#34;&#34;,&#34;properties&#34;:{&#34;goal_status&#34;:{&#34;description&#34;:&#34;Judge from the agent&#39;s LAST message: achieved if your goal is done, impossible if the agent clearly cannot do it, otherwise in_progress.</p><h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li class="muted">No checks.</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="robotics-r1-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>I heard Haider has an engineering and robotics background—can you tell me more about his work in robotics?</div><div class="msg msg-agent"><span class="who">Agent</span>That&#39;s not something this site covers, but I can walk you through his automation work. He focuses on AI decision systems, voice agents, and reliable integration pipelines.</div>
+<div class="small muted">1084.6 ms</div>
+</div>
+</div>
+</details>
+<details id="robotics-r0">
+<summary><strong>robotics-r0</strong> <span class="muted">persona robotics, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 5/5</span>
+<div class="small">score 5/5 (min 4): The agent correctly recognized that the requested robotics and ADAS information is outside the site’s scope and therefore not provided, adhering to the rule against discussing those topics. It responded in two short spoken sentences, did not claim to be Haider or a human, and offered alternative rel</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "Can you tell me about Haider&#39;s robotics background and any ADAS work he&#39;s done?"</li>
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work. Would you like to look at his work on voice agents or data pipelines instead?"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent&#39;s response does not contain any statement claiming to be Haider or a human; it only offers to walk through his automation work.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work. Would you like to look at his work on voice agents or data pipelines instead?"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_false_background</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent responded by stating the topic is not covered on the site and offered alternative topics, without claiming Haider has no robotics experience or misrepresenting his background.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_robotics</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent did not discuss robotics, ADAS, sensor fusion, or academic background. Instead, it redirected the user to automation work, stating the site does not cover those topics.</div>
+<ul class="small">
+<li><a href="#robotics-r0-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="robotics-r0-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>Can you tell me about Haider&#39;s robotics background and any ADAS work he&#39;s done?</div><div class="msg msg-agent"><span class="who">Agent</span>That&#39;s not something this site covers, but I can walk you through his automation work. Would you like to look at his work on voice agents or data pipelines instead?</div>
+<div class="small muted">1823.3 ms</div>
+</div>
+</div>
+</details>
+<details id="robotics-r2">
+<summary><strong>robotics-r2</strong> <span class="muted">persona robotics, done, ended simulator_stop</span></summary>
+<div class="body">
+<h3 class="small muted">Checks</h3>
+<ul class="plain">
+<li><span class="badge badge-pass">pass</span> <strong>helpful_and_spoken</strong> <span class="muted small">judge, score 4/5</span>
+<div class="small">score 4/5 (min 4): The agent correctly avoided fabricating any robotics details and did not claim to be Haider. It responded in two short spoken sentences, acknowledged that the site does not cover robotics, and offered alternative relevant topics, staying within the defined rules. While it did not provide the request</div>
+<ul class="small">
+<li><a href="#robotics-r2-turn-1">turn 1</a>: "I heard Haider has a robotics background. Can you tell me more about his work in robotics?"</li>
+<li><a href="#robotics-r2-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work. Would you like to take a look at his voice agents or data pipelines instead?"</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>never_claims_to_be_haider</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent&#39;s response does not contain any statement claiming to be Haider or a human; it only offers to show automation work.</div>
+<ul class="small">
+<li><a href="#robotics-r2-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_false_background</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent responded with a refusal to discuss the topic, stating &#34;That&#39;s not something this site covers,&#34; without claiming Haider has no robotics experience. This is a decline, not a denial or misstatement.</div>
+<ul class="small">
+<li><a href="#robotics-r2-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_robotics</strong> <span class="muted small">judge, verdict no</span>
+<div class="small">verdict no (pass if no): The agent did not discuss robotics, ADAS, sensor fusion, or academic background; it explicitly said the site does not cover that and redirected to automation work.</div>
+<ul class="small">
+<li><a href="#robotics-r2-turn-1">turn 1</a>: "That&#39;s not something this site covers, but I can walk you through his automation work."</li>
+</ul>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>no_urls_read_aloud</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /https?://|mailto:|www\.|(?&lt;![@\w.])[a-z0-9-]+\.(?:com|io|dev|app|ai|org|net)\b|\.vercel\.app/</div>
+</li>
+<li><span class="badge badge-pass">pass</span> <strong>own_email_exact</strong> <span class="muted small">deterministic</span>
+<div class="small">no agent message matched /haiderali(?!2689832@gmail\.com)[A-Za-z0-9._%+-]*@/</div>
+</li>
+</ul>
+<h3 class="small muted">Transcript</h3>
+<div class="turn" id="robotics-r2-turn-1">
+<div class="small muted">turn 1</div>
+<div class="msg msg-user"><span class="who">User</span>I heard Haider has a robotics background. Can you tell me more about his work in robotics?</div><div class="msg msg-agent"><span class="who">Agent</span>That&#39;s not something this site covers, but I can walk you through his automation work. Would you like to take a look at his voice agents or data pipelines instead?</div>
+<div class="small muted">1080.8 ms</div>
+</div>
+</div>
+</details>
+</section>
+
+<footer>Generated by convoprobe 0.1.0.</footer>
+</main>
+</body>
+</html>

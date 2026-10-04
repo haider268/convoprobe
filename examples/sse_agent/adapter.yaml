@@ -1,0 +1,15 @@
+type: http
+url: http://127.0.0.1:8766/chat
+headers:
+  x-session: "convoprobe-{{conversation_id}}"
+request_template:
+  session: "{{conversation_id}}"
+  text: "{{message}}"
+  history: "{{history}}"
+text_path: text
+response_mode: sse
+sse_tool_event: tool
+sse_tool_result_fields: [ok]
+sse_transient_events: [limited]
+history_roles: {user: user, agent: model}
+history_includes_current: false

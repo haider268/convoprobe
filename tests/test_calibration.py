@@ -273,6 +273,18 @@ def test_refuses_to_overwrite_labels(tmp_path: Path, sources: list[Path]) -> Non
     assert labels_path.read_text("utf-8") == before
 
 
+def test_refuses_to_overwrite_reviewed_labels_file(tmp_path: Path, sources: list[Path]) -> None:
+    reviewed = Path(__file__).resolve().parents[1] / "calibration" / "labels.yaml"
+    data = yaml.safe_load(reviewed.read_text("utf-8"))
+    assert isinstance(data["labeled_by"], str)
+    out = tmp_path / "calib"
+    out.mkdir()
+    (out / "labels.yaml").write_bytes(reviewed.read_bytes())
+    with pytest.raises(ConvoprobeError, match=OVERWRITE_REFUSED):
+        prepare(sources, out)
+    assert (out / "labels.yaml").read_bytes() == reviewed.read_bytes()
+
+
 def test_refuses_unreadable_labels(tmp_path: Path, sources: list[Path]) -> None:
     out = tmp_path / "calib"
     out.mkdir()

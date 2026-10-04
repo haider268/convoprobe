@@ -32,7 +32,8 @@ uv run convoprobe compare RESULTS [--baseline PATH] [--threshold 0..1] [--json]
 uv run convoprobe calibrate prepare --from RESULTS [--from ...] --out DIR [--max 30]
 uv run convoprobe calibrate score --set DIR --scenario S [--scenario S] --judge P:M
     --out FILE [--replay CASSETTE | --db PATH]
-uv run convoprobe calibrate table FILE [FILE ...] [--out calibration/RESULTS.md]
+uv run convoprobe calibrate table FILE [FILE ...] [--out F] [--title T] [--note N]
+    [--append] [--no-table] [--footer]
 uv run convoprobe personas generate SCENARIO -n 4 [--hosted | --replay C]
 uv run convoprobe cassette export --run-id ID [--run-id ID] --out FILE
 uv run convoprobe demo --record      # live, needs GROQ_API_KEY
@@ -67,22 +68,23 @@ Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
   gives no advice or outcome estimates; `agent_loose` shares typical outcomes to
   produce failures. Say "candidacy call" only (a rubric regex checks the other
   word). Contact details are reserved fakes (`.example`, 555-0100 to 0199).
-- Flow (`calibration.py`): **prepare** picks done conversations with applicable
-  `llm_judge` items (`--from` order, then id, up to `--max`) and writes
-  `conversations/`, `transcripts/`, blank `labels.yaml`, `README.md`; it refuses
-  (exit 2) to overwrite labels or to write real-looking emails or phones. Then
-  **labels** are filled; **score** runs one judge over every label (salt
-  `calib:<item>:<rubric>`, errors recorded, never fatal) and writes a
-  `CalibrationReport` (agreement, Cohen's kappa on pass/fail decisions, exact /
-  within 1 for scales, confusion); **table** writes `calibration/RESULTS.md`.
-- Blind rule: the set never shows a check result, verdict, score, reasoning, or
-  status (a test scans every file). Provenance wording, everywhere: the labels
-  were drafted by Claude without seeing judge output, then reviewed and approved
-  by a human. Never call them plain "human labels". Never edit reviewed labels.
+- Flow (`calibration.py`): **prepare** writes a blind set (refuses to overwrite
+  labels or to write real-looking emails or phones); **labels** are filled;
+  **score** runs one judge over every label (salt `calib:<item>:<rubric>`, errors
+  recorded) into a `CalibrationReport` (agreement, Cohen's kappa on pass/fail
+  decisions, exact / within 1 for scales); **table** writes `RESULTS.md`.
+- Blind rule: the set never shows a check result, verdict, or score. Wording:
+  labels were drafted by Claude without seeing judge output, then reviewed and
+  approved by a human (never plain "human labels"). Never edit label values.
 - Reproduce offline: `calibrate score ... --replay calibration/cassette.json`
-  (commands in `RESULTS.md`). New live judge runs use `--db` and run id
-  `calib-<slug>`; export them with `cassette export`. qwen3.8-27b needs
-  `GROQ_MAX_TOKENS=800`; gpt-oss judges must run without it.
+  (commands in `RESULTS.md`). Live runs use `--db`, run id `calib-<slug>`, then
+  `cassette export`. qwen3.8-27b needs `GROQ_MAX_TOKENS=800`; gpt-oss must not.
+- Finding: judges counted "many patients see relief" as medical advice (criterion
+  bleed). Fixed in the question wording, not the labels; both tables are kept.
+- Only hosted judges are calibrated; the local 3B judge is too slow on CPU.
+- Replay fallback (judge, simulator, personas): invalid output is never cached,
+  so on a replay miss of the first attempt, try the `:retry1` salt the live run
+  used; a second miss raises the first. Live calls never do this.
 
 ## Adapters
 
@@ -134,10 +136,8 @@ Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
 
 ## How to extend
 
-- New check: model in `datamodels.py`, add to `RubricItem` and the tag set in
-  `scenario.py`, function in `scoring/deterministic.py`, register in `_CHECKS`.
-- New adapter: the three async `AgentAdapter` methods; raise `TransientError`
-  for retryable failures, and add it to the equivalence test.
+- New check: model + `RubricItem` + tag set (`scenario.py`), then `_CHECKS`.
+- New adapter: three async `AgentAdapter` methods, `TransientError`, equivalence test.
 - New provider: `models/factory.py` (`PROVIDERS`, `_CLASSES`), an extra, limits
   in `config.py` and `LLMRegistry.limiter`, `registry.STRUCTURED_METHOD`.
 

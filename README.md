@@ -161,10 +161,9 @@ Both tables, the reading notes, and the per-label rows are in
 - **Transient errors are resumable; simulator errors are never blamed on the agent.** Rate
   limits and timeouts leave a conversation retryable on the next run with the same run id. Bad
   simulator output ends the conversation as `simulator_error` with no checks scored.
-- **Rejected:** a lower reasoning effort on gpt-oss-20b cut tokens but produced invalid outputs,
-  so it was not used. A local 3B judge (ollama:llama3.2:3b) produced 17 of 62 answers in 2.5
-  hours on a CPU-only laptop and returned a wrong verdict in an earlier smoke test, so it is
-  not part of the calibration (see calibration/RESULTS.md).
+- **Rejected: a local 3B judge.** ollama:llama3.2:3b produced 17 of 62 answers in 2.5 hours on
+  a CPU-only laptop and returned a wrong verdict in an earlier smoke test, so it is not part of
+  the calibration (see calibration/RESULTS.md).
 
 ## Limitations
 

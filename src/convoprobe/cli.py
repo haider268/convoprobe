@@ -21,6 +21,15 @@ from convoprobe import demo as demo_package
 from convoprobe.adapters import CallableAdapter, load_adapter
 from convoprobe.baseline import Comparison, baseline_from, load_baseline, save_baseline
 from convoprobe.baseline import compare as compare_runs
+from convoprobe.calibration import (
+    CalibrationReport,
+    format_kappa,
+    format_share,
+    judge_slug,
+    load_report,
+    render_table,
+    score_judge,
+)
 from convoprobe.calibration import prepare as prepare_calibration
 from convoprobe.config import HOSTED_JUDGE, HOSTED_SIMULATOR, Settings, load_settings
 from convoprobe.datamodels import RunResult, Scenario
@@ -379,6 +388,95 @@ def calibrate_prepare(
     for source, count in prepared.per_source:
         typer.echo(f"{source}: {count} item(s)")
     typer.echo(f"prepared {prepared.items} item(s), {prepared.labels} label(s) to fill: {out}")
+
+
+@calibrate_app.command("score")
+def calibrate_score(
+    set_dir: Annotated[Path, typer.Option("--set", help="Calibration set folder.")],
+    scenarios: Annotated[
+        list[Path],
+        typer.Option("--scenario", help="Scenario file defining the judge items. Repeatable."),
+    ],
+    judge: Annotated[str, typer.Option(help="Judge model as provider:model.")],
+    out: Annotated[Path, typer.Option(help="Report JSON to write.")],
+    replay: Annotated[
+        Path | None, typer.Option(help="Replay judge calls from a cassette. No keys needed.")
+    ] = None,
+    db: Annotated[Path, typer.Option(help="SQLite file for the LLM cache.")] = DEFAULT_DB,
+) -> None:
+    """Run one judge over the labelled set and measure its agreement with the labels."""
+    try:
+        settings = load_settings()
+        with ExitStack() as stack:
+            cache: LLMCache = (
+                _open_cassette(replay)
+                if replay is not None
+                else stack.enter_context(SqliteLLMCache(db))
+            )
+            registry = LLMRegistry(
+                settings,
+                cache,
+                replay_only=replay is not None,
+                run_id=f"calib-{judge_slug(judge)}",
+            )
+            client = registry.client(judge, JUDGE_TEMPERATURE)
+            if replay is None:
+                asyncio.run(_preflight(settings, [judge]))
+            report = asyncio.run(score_judge(set_dir, scenarios, judge, client))
+    except (ScenarioError, ConvoprobeError) as exc:
+        raise _fail(str(exc)) from None
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8", newline="\n")
+    _print_calibration(report, Console())
+    typer.echo(f"report: {out}")
+
+
+def _print_calibration(report: CalibrationReport, console: Console) -> None:
+    table = Table(title=f"judge {report.judge}")
+    for column in ("rubric", "n", "agreement", "kappa", "errors"):
+        table.add_column(column, justify="left" if column == "rubric" else "right")
+    for row in report.per_rubric:
+        agreement = (
+            format_share(row.agreement)
+            if row.answer_type == "yes_no"
+            else f"exact {format_share(row.exact)}, within 1 {format_share(row.within1)}"
+        )
+        table.add_row(
+            row.rubric_id,
+            str(row.n),
+            agreement,
+            format_kappa(row.decision_kappa),
+            str(row.n_errors),
+        )
+    console.print(table)
+    console.print(
+        f"overall decisions: {format_share(report.overall_decision_agreement)} agree,"
+        f" kappa {format_kappa(report.overall_decision_kappa)}"
+        f" ({report.n_labels} labels, {report.n_errors} errors)",
+        markup=False,
+        soft_wrap=True,
+    )
+    console.print(f"labels: {report.labeled_by}", markup=False, soft_wrap=True)
+
+
+@calibrate_app.command("table")
+def calibrate_table(
+    reports: Annotated[
+        list[Path], typer.Argument(metavar="FILE", help="Calibration report JSON files.")
+    ],
+    out: Annotated[Path, typer.Option(help="Markdown file to write.")] = Path(
+        "calibration/RESULTS.md"
+    ),
+) -> None:
+    """Write a Markdown table comparing judges."""
+    try:
+        loaded = [load_report(path) for path in reports]
+        text = render_table(loaded, _today())
+    except ConvoprobeError as exc:
+        raise _fail(str(exc)) from None
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8", newline="\n")
+    typer.echo(f"wrote {out} ({len(loaded)} judge(s))")
 
 
 cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)

@@ -108,9 +108,17 @@ def _result(
 
 
 async def judge_item(
-    item: LLMJudgeItem, conversation: Conversation, scenario: Scenario, client: LLMClient
+    item: LLMJudgeItem,
+    conversation: Conversation,
+    scenario: Scenario,
+    client: LLMClient,
+    salt: str | None = None,
 ) -> CheckResult:
-    """Ask the judge about one rubric item. TransientError and ReplayMissError propagate."""
+    """Ask the judge about one rubric item. TransientError and ReplayMissError propagate.
+
+    salt overrides the cache salt (default "judge:<conversation id>:<item id>"); the
+    retry uses the same salt plus ":retry1".
+    """
     lines = _transcript_lines(conversation)
     max_turn = max((turn for turn, _line in lines), default=0)
     turn_text = {
@@ -132,11 +140,11 @@ async def judge_item(
             )
         ),
     ]
-    base_salt = f"judge:{conversation.id}:{item.id}"
+    base_salt = salt if salt is not None else f"judge:{conversation.id}:{item.id}"
     reason = ""
-    for salt in (base_salt, base_salt + ":retry1"):
+    for attempt_salt in (base_salt, base_salt + ":retry1"):
         try:
-            answer = await client.structured(messages, schema, salt=salt)
+            answer = await client.structured(messages, schema, salt=attempt_salt)
         except StructuredOutputError as exc:
             reason = str(exc)
             continue

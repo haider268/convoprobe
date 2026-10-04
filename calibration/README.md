@@ -15,7 +15,8 @@ labels are the ground truth the LLM judge is measured against.
 The judge's verdicts are deliberately not shown anywhere in this folder, so
 they cannot bias your labels. Do not open the run results while labelling.
 
-Labels must come from a person, not a model. A model's labels would measure
-the judge against another model, not against human judgement.
+Labels must come from a person, or be drafted by a model and then reviewed by
+a person. Record which one in the labeled_by field. A model's labels would
+measure the judge against another model, not against human judgement.
 
 `conversations/<item>.json` holds the full conversation data for tooling.

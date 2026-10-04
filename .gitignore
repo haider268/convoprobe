@@ -24,3 +24,4 @@ htmlcov/
 .convoprobe/*.db
 .convoprobe/*.db-*
 results/
+!calibration/results/

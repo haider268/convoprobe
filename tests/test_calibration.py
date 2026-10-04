@@ -215,7 +215,12 @@ def test_file_contents(tmp_path: Path, sources: list[Path]) -> None:
     assert record["agent_description"] == "Agent for run-a."
     assert set(record) == set(expected) | {"source_run", "adapter", "agent_description"}
     assert (out / "README.md").read_text("utf-8") == README
-    assert "not a model" in README and "deliberately not shown" in README
+    assert "deliberately not shown" in README
+    assert (
+        "Labels must come from a person, or be drafted by a model and then reviewed by\n"
+        "a person. Record which one in the labeled_by field." in README
+    )
+    assert "not a model" not in README
 
 
 def test_transcripts_match_format_transcript(tmp_path: Path, sources: list[Path]) -> None:

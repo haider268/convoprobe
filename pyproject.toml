@@ -1,12 +1,24 @@
 [project]
 name = "convoprobe"
-version = "0.0.1"
+version = "0.1.0"
 description = "Stress-test conversational agents with simulated users, scored checks, and CI regression gates."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-keywords = ["llm", "agents", "evaluation", "testing", "langgraph"]
+keywords = [
+    "llm",
+    "agents",
+    "evaluation",
+    "testing",
+    "langgraph",
+    "llm-judge",
+    "simulated-users",
+]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -26,6 +38,11 @@ dependencies = [
     "rich>=15.0.0",
     "typer>=0.27.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/haider268/convoprobe"
+Repository = "https://github.com/haider268/convoprobe"
+Issues = "https://github.com/haider268/convoprobe/issues"
 
 [project.scripts]
 convoprobe = "convoprobe.cli:main"

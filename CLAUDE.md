@@ -2,18 +2,16 @@
 
 convoprobe stress-tests conversational agents with simulated users. Scenario
 YAML plus an agent adapter in; scored conversations, reports, and a CI exit
-code out. Status: milestone 5 (clinic example, judge calibration).
+code out. Status: 0.1.0 (README, example CI gate in `ci/`, judge calibration).
 
 ## Hard rules
 
 - Git identity is local: `haider268` / `haider268@users.noreply.github.com`
   (the global one is a company account). Check `git log --format="%an <%ae>"`.
-- Never `git remote add`, `git push`, or upload to PyPI/TestPyPI.
-- No downloads over about 200 MB (Ollama, torch, Docker images), no system
-  installs. Everything goes through uv into `.venv`.
+- Never push, add a remote, or upload to PyPI. No downloads over about 200 MB.
+- No system installs; everything goes through uv. Rules in code, language in the LLM.
 - Keys only in the git-ignored `.env`. Never print, log, read out, or commit one.
-- Fake data only (`.example` domains). Rules in code, language in the LLM.
-  Write files with the file tool, not shell heredocs (one corrupted a regex).
+- Fake data only (`.example` domains). Write files with the file tool, not heredocs.
 - Live runs: VPN OFF for Groq (it answers 403 to VPN and datacenter IPs).
 - User-facing text (CLI, HTML): plain, short, no em dashes.
 
@@ -140,6 +138,8 @@ Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
 - New adapter: three async `AgentAdapter` methods, `TransientError`, equivalence test.
 - New provider: `models/factory.py` (`PROVIDERS`, `_CLASSES`), an extra, limits
   in `config.py` and `LLMRegistry.limiter`, `registry.STRUCTURED_METHOD`.
+- Release: version in two places, `pyproject.toml` and `src/convoprobe/__init__.py`
+  (tests check it; then `uv lock --offline`), plus a `CHANGELOG.md` entry.
 
 ## Contracts
 

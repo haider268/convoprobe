@@ -2,7 +2,7 @@
 
 convoprobe stress-tests conversational agents with simulated users. Scenario
 YAML plus an agent adapter in; scored conversations, reports, and a CI exit
-code out. Status: milestone 5 (clinic example, judge calibration set).
+code out. Status: milestone 5 (clinic example, judge calibration).
 
 ## Hard rules
 
@@ -30,6 +30,9 @@ uv run convoprobe report RESULTS [--html] [--out PATH]
 uv run convoprobe baseline save RESULTS [--path .convoprobe/baseline.json]
 uv run convoprobe compare RESULTS [--baseline PATH] [--threshold 0..1] [--json]
 uv run convoprobe calibrate prepare --from RESULTS [--from ...] --out DIR [--max 30]
+uv run convoprobe calibrate score --set DIR --scenario S [--scenario S] --judge P:M
+    --out FILE [--replay CASSETTE | --db PATH]
+uv run convoprobe calibrate table FILE [FILE ...] [--out calibration/RESULTS.md]
 uv run convoprobe personas generate SCENARIO -n 4 [--hosted | --replay C]
 uv run convoprobe cassette export --run-id ID [--run-id ID] --out FILE
 uv run convoprobe demo --record      # live, needs GROQ_API_KEY
@@ -38,13 +41,10 @@ uv run pytest -m live -q --no-cov    # live: needs Ollama (and .env for Groq)
 uv run ruff check && uv run ruff format --check && uv run mypy src
 ```
 
-`run` modes: default is live Ollama (`qwen2.5:3b` / `llama3.2:3b`, preflighted;
-a 3B judge gave wrong verdicts in review, so a live Ollama judge prints a note).
-`--hosted` uses `groq:openai/gpt-oss-20b` / `groq:openai/gpt-oss-120b` (judge
-4/4 valid on 28 Sep 2026, qwen3.8-27b 1/4; for real agents pick a judge family
-different from the agent). `--replay` needs no key. `--no-llm` excludes model
-options. Simulator 0.7, judge 0.0. `results.json` records `mode`, the rubric,
-and the agent description. RESULTS is a run folder or its `results.json`.
+`run` modes: default live Ollama (`qwen2.5:3b` / `llama3.2:3b`, preflighted; a
+live Ollama judge prints a reliability note). `--hosted`: Groq `gpt-oss-20b` /
+`gpt-oss-120b` (for real agents pick a judge family different from the agent).
+Simulator 0.7, judge 0.0. RESULTS is a run folder or its `results.json`.
 
 ## Reports, baselines, compare (the CI gate)
 
@@ -63,20 +63,26 @@ and the agent description. RESULTS is a run folder or its `results.json`.
 
 ## Clinic example and calibration
 
-- `examples/clinic_agent/`: front desk of a fictional clinic (Groq
-  `gpt-oss-20b`, needs `.env`). `agent_strict` gives no advice or outcome
-  estimates; `agent_loose` is told to share typical outcomes, to produce
-  failures worth labelling. Lazy: import builds no client. The call to book is
-  a "candidacy call"; never write the other word (a rubric regex checks it).
-  Scenario: `examples/scenarios/clinic_intake.yaml`.
-- `calibration.py` / `calibrate prepare`: done conversations with applicable
-  `llm_judge` items, in `--from` order then conversation id, up to `--max`.
-  Writes `conversations/cNN.json`, `transcripts/cNN.md`, `labels.yaml`
-  (`label: null` per item x question), `README.md`. Refuses (exit 2) when
-  `labels.yaml` already has a label.
-- Blind labelling rule: nothing in the set may show a check result, verdict,
-  score, reasoning, or status (a test scans every file). Labels come from a
-  person, never a model.
+- `examples/clinic_agent/` (fictional clinic, Groq, lazy client): `agent_strict`
+  gives no advice or outcome estimates; `agent_loose` shares typical outcomes to
+  produce failures. Say "candidacy call" only (a rubric regex checks the other
+  word). Contact details are reserved fakes (`.example`, 555-0100 to 0199).
+- Flow (`calibration.py`): **prepare** picks done conversations with applicable
+  `llm_judge` items (`--from` order, then id, up to `--max`) and writes
+  `conversations/`, `transcripts/`, blank `labels.yaml`, `README.md`; it refuses
+  (exit 2) to overwrite labels or to write real-looking emails or phones. Then
+  **labels** are filled; **score** runs one judge over every label (salt
+  `calib:<item>:<rubric>`, errors recorded, never fatal) and writes a
+  `CalibrationReport` (agreement, Cohen's kappa on pass/fail decisions, exact /
+  within 1 for scales, confusion); **table** writes `calibration/RESULTS.md`.
+- Blind rule: the set never shows a check result, verdict, score, reasoning, or
+  status (a test scans every file). Provenance wording, everywhere: the labels
+  were drafted by Claude without seeing judge output, then reviewed and approved
+  by a human. Never call them plain "human labels". Never edit reviewed labels.
+- Reproduce offline: `calibrate score ... --replay calibration/cassette.json`
+  (commands in `RESULTS.md`). New live judge runs use `--db` and run id
+  `calib-<slug>`; export them with `cassette export`. qwen3.8-27b needs
+  `GROQ_MAX_TOKENS=800`; gpt-oss judges must run without it.
 
 ## Adapters
 
@@ -84,24 +90,20 @@ and the agent description. RESULTS is a run folder or its `results.json`.
 `examples.toy_support_agent.graph:adapter_v1` works from the repo root) or
 `http:<config.yaml>`. A compiled LangGraph graph is wrapped automatically.
 - `CallableAdapter`: `(history) -> str | AgentTurn`, sync or async.
-- `LangGraphAdapter(graph, resume=...)`: needs a checkpointer; fresh thread per
-  conversation; interrupts resume with `resume` (`None` = error), capped by
-  `max_resumes`. Node path goes to `metadata`. langgraph imported lazily.
-- `HTTPAdapter`: YAML (`url`, `request_template` with `{{message}}` /
-  `{{conversation_id}}` / `{{history}}`, dotted `text_path` / `tool_calls_path`,
-  `headers` with `${ENV}`). 408/429/500/502/503/504 retry.
+- `LangGraphAdapter(graph, resume=...)`: checkpointer, fresh thread per
+  conversation, interrupts resumed with `resume` up to `max_resumes`.
+- `HTTPAdapter`: YAML `url`, `request_template` (`{{message}}` and friends),
+  dotted `text_path`, `headers` with `${ENV}`; 408/429/5xx retry.
 - `tests/test_adapter_equivalence.py` runs the demo through all three shapes and
   requires identical results. Keep it green. The toy agent reads only whole
   4-digit order ids, kept on purpose as a demo finding.
 
 ## Layout
 
-- `datamodels.py` (all Pydantic models), `config.py` (`load_settings()` reads
-  `CONVOPROBE_ENV_FILE`, default `.env`), `scenario.py`, `errors.py`, `store.py`,
-  `runner.py`, `summary.py`, `baseline.py`, `calibration.py`, `jsonlog.py`,
-  `cli.py`, `report/`, `scoring/` (`deterministic.py`, `judge.py`), `simulator/`.
-- `demo/`: toy agent (`decide()` shared by every agent shape), `scenario.yaml`,
-  `cassette.json`, `DEMO_*`. No module may shadow a stdlib or dependency name.
+- `datamodels.py` (all models), `config.py` (`load_settings()` reads
+  `CONVOPROBE_ENV_FILE`, default `.env`), `runner.py`, `calibration.py`, `cli.py`,
+  `report/`, `scoring/`, `simulator/`, `demo/` (toy agent, scenario, cassette).
+  No module may shadow a stdlib or dependency name.
 
 ## LLM layer (models/)
 
@@ -111,17 +113,15 @@ and the agent description. RESULTS is a run folder or its `results.json`.
   structured output (or `tool_use_failed` / `json_validate_failed`) raises
   `StructuredOutputError` and is never cached. `json_schema` for Ollama and Groq.
 - `cache.py`: `SqliteLLMCache` (tracks run use, `export_cassette`), `JsonCassette`.
-- `retry.py`: 408/429/5xx, timeouts, connection errors retry with jittered
-  backoff. Groq 403 = VPN. 429 "Request too large" is not retried; its message
-  quotes the provider (300 chars, org ids redacted).
-- `registry.py`: one limiter per Groq/Gemini model (their limits are per
-  model), one shared Ollama limiter. `GROQ_MAX_TOKENS` sets `max_tokens`;
-  qwen3.8-27b needs it below 1000.
+- `retry.py`: 408/429/5xx, timeouts, connection errors retry with backoff. Groq
+  403 = VPN. 429 "Request too large" is not retried (message redacts org ids).
+- `registry.py`: one limiter per Groq/Gemini model, one shared Ollama limiter.
 
 ## Simulator, judge, demo, runner
 
 - `LLMSimulator` flips roles (its lines are AIMessages); `SimTurn` stops only
-  after an agent reply. One retry on bad output, then `simulator_error`.
+  after an agent reply. One retry on bad output or an empty first message, then
+  `simulator_error`; a zero-message conversation is never `done`.
 - Judge: reasoning first; lines `turn N USER|AGENT|AGENT TOOL CALL`. Bad
   evidence twice gives `error`, never a pass; `quote_found` checks each quote.
   No docstrings on schema classes: pydantic sends them to the model.

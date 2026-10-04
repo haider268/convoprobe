@@ -376,13 +376,13 @@ def test_demo_replays_committed_cassette() -> None:
     lines = result.output.rstrip().splitlines()
     assert lines[0] == (
         "DEMO: toy shop agent. Scripted personas run live; LLM personas and judge verdicts"
-        " replay a cassette recorded on 2026-09-27 (simulator groq:openai/gpt-oss-20b,"
+        " replay a cassette recorded on 2026-10-04 (simulator groq:openai/gpt-oss-20b,"
         " judge groq:openai/gpt-oss-120b). No API keys, no network."
     )
     assert lines[-1] == RECORDED_FINAL_LINE
     assert lines.count("conversations: 7 done, 0 failed, 0 transient, 0 skipped") == 2
     assert (
-        "llm groq:openai/gpt-oss-20b: 0 calls, 43 cache hits, 0 retries, 0 in / 0 out tokens"
+        "llm groq:openai/gpt-oss-20b: 0 calls, 36 cache hits, 0 retries, 0 in / 0 out tokens"
         in (lines)
     )
 

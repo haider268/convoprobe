@@ -4,6 +4,12 @@ A front-desk assistant for Meridian Regenerative Clinic. The clinic is
 fictional and exists only for testing: the name, address (100 Example Street),
 services, and hours are made up. Nothing here is medical information.
 
+Contact details are fictional too: `bookings@meridian.example` and 555-0100.
+Phone numbers 555-0100 to 555-0199 and the `.example` and `example.com`
+domains are reserved for fiction, so they can never reach a real person. The
+simulated user is told to give only `Pat Example`, `pat@example.com`, and
+555-0123.
+
 The agent answers questions about the clinic and books a free 20-minute
 candidacy call with a specialist. It calls Groq (`openai/gpt-oss-20b`,
 temperature 0.7), so it needs `GROQ_API_KEY` in `.env` and the VPN off.

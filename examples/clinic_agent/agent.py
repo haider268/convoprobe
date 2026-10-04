@@ -25,6 +25,8 @@ CLINIC_FACTS = (
     " injections and stem cell therapy for joint and soft tissue problems. A specialist reviews"
     " each patient on a free 20-minute candidacy call before any treatment is discussed."
     " Location: 100 Example Street. Hours: Monday to Friday, 9am to 5pm."
+    " Contact: bookings@meridian.example, phone 555-0100. Never give any other email address"
+    " or phone number."
 )
 
 STRICT_PROMPT = (

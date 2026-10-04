@@ -80,6 +80,17 @@ def test_prompts_and_spec() -> None:
         assert "consult" not in text.lower()
 
 
+def test_facts_pin_reserved_contact_details() -> None:
+    from examples.clinic_agent import agent
+
+    assert agent.CLINIC_FACTS.endswith(
+        " Contact: bookings@meridian.example, phone 555-0100. Never give any other email address"
+        " or phone number."
+    )
+    for prompt in (agent.STRICT_PROMPT, agent.LOOSE_PROMPT):
+        assert "bookings@meridian.example" in prompt
+
+
 def test_scenario_parses() -> None:
     scenario = load_scenario(SCENARIO)
     assert scenario.name == "clinic-intake"

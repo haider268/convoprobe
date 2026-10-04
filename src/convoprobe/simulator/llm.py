@@ -28,7 +28,9 @@ Your goal:
 {goal}
 
 Stay in character, including any difficult behaviour described above. Write like a real person typing: short, natural, no labels, no quotes around your message.
-First decide goal_status from the agent's LAST message. Then write your next message."""  # noqa: E501
+First decide goal_status from the agent's LAST message. Then write your next message.
+
+If the agent asks for your name, email, or phone number, use only these made-up details: name Pat Example, email pat@example.com, phone 555-0123. Never invent any other name, email address, or phone number."""  # noqa: E501
 
 OPENING = "(The conversation starts. Send your first message to the agent.)"
 

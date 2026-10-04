@@ -124,6 +124,15 @@ async def test_scripted_persona_raises(cache: SqliteLLMCache) -> None:
         await LLMSimulator(client).next_message(SCENARIO, persona, [], conversation_id="c1")
 
 
+def test_prompt_pins_reserved_fake_contact_details() -> None:
+    paragraph = (
+        "If the agent asks for your name, email, or phone number, use only these made-up"
+        " details: name Pat Example, email pat@example.com, phone 555-0123. Never invent any"
+        " other name, email address, or phone number."
+    )
+    assert SIMULATOR_SYSTEM.endswith("\n\n" + paragraph)
+
+
 def test_is_user_simulator(cache: SqliteLLMCache) -> None:
     client, _ = fake_client(cache, [])
     assert isinstance(LLMSimulator(client), UserSimulator)

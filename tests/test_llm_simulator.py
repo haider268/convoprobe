@@ -79,9 +79,33 @@ async def test_achieved_before_any_agent_reply_is_ignored(cache: SqliteLLMCache)
     assert text == "Hello, I need a refund."
 
 
-async def test_blank_message_stops(cache: SqliteLLMCache) -> None:
-    client, _ = fake_client(cache, [turn("in_progress", "   ")])
-    assert await LLMSimulator(client).next_message(SCENARIO, PAT, [], conversation_id="c1") is None
+AFTER_REPLY = [Message(role="user", text="hi"), Message(role="agent", text="Hello.")]
+
+
+async def test_blank_message_after_agent_reply_stops(cache: SqliteLLMCache) -> None:
+    client, model = fake_client(cache, [turn("in_progress", "   ")])
+    sim = LLMSimulator(client)
+    assert await sim.next_message(SCENARIO, PAT, AFTER_REPLY, conversation_id="c1") is None
+    assert model.calls == 1
+
+
+async def test_empty_first_message_retried_once(cache: SqliteLLMCache) -> None:
+    client, model = fake_client(cache, [turn("in_progress", " "), turn("in_progress", "Hi.")])
+    text = await LLMSimulator(client).next_message(SCENARIO, PAT, [], conversation_id="c1")
+    assert text == "Hi."
+    assert model.calls == 2
+    # The retry is a separate cache entry under its own salt.
+    replay, replay_model = fake_client(cache, [])
+    assert await LLMSimulator(replay).next_message(SCENARIO, PAT, [], conversation_id="c1") == "Hi."
+    assert replay_model.calls == 0
+
+
+async def test_empty_first_message_twice_raises(cache: SqliteLLMCache) -> None:
+    client, model = fake_client(cache, [turn("in_progress", ""), turn("achieved", "  ")])
+    with pytest.raises(StructuredOutputError) as info:
+        await LLMSimulator(client).next_message(SCENARIO, PAT, [], conversation_id="c1")
+    assert str(info.value) == "ollama:fake produced an empty first user message"
+    assert model.calls == 2
 
 
 async def test_salt_differs_by_conversation_and_turn(cache: SqliteLLMCache) -> None:

@@ -36,6 +36,7 @@ from convoprobe.summary import summarize
 
 NO_SIMULATOR = "no simulator model configured"
 RUNNABLE = {"pending", "failed_transient"}
+EMPTY_CONVERSATION = "simulator: conversation ended before any exchange"
 
 Persona = LLMPersona | ScriptedPersona
 
@@ -269,6 +270,11 @@ async def _converse(
         error = f"{type(exc).__name__}: {exc}"
         conversation.ended_reason = "agent_error"
         conversation.error = error
+
+    if status == "done" and not conversation.messages:
+        conversation.ended_reason = "simulator_error"
+        _fail(store, log, run_id, conversation, "failed", EMPTY_CONVERSATION)
+        return
 
     checks: list[CheckResult] = run_deterministic_checks(scenario.rubric, conversation)
     try:

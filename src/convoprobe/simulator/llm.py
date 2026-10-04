@@ -98,4 +98,12 @@ class LLMSimulator:
         if agent_replied and turn.goal_status != "in_progress":
             return None
         text = turn.message.strip()
+        if not text and not agent_replied:
+            # An empty opening is a bad sample, not a stop: retry once, then fail.
+            retry = await self.client.structured(chat, SimTurn, salt=salt + ":retry_empty")
+            text = retry.message.strip()
+            if not text:
+                raise StructuredOutputError(
+                    f"{self.client.spec} produced an empty first user message"
+                )
         return text or None

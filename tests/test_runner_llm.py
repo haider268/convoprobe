@@ -162,7 +162,9 @@ async def test_generated_personas_saved_and_reused(
     ]
 
     fresh_client, fresh_model = fake_client(cache, [], spec="ollama:personas")
-    sim, _ = simulator(cache, [sim_turn("in_progress", "x"), sim_turn("achieved")] * 2)
+    # Two conversations share this output list in any order. "achieved" is ignored before
+    # the agent replies, so each one sends "x" first and stops on its second turn.
+    sim, _ = simulator(cache, [sim_turn("achieved", "x")] * 4)
     second = await run(
         scn, store, tmp_path, run_id="gen", persona_client=fresh_client, llm_simulator=sim
     )
@@ -243,6 +245,63 @@ async def test_simulator_double_failure_is_simulator_error(
         "conversations: 0 done, 1 failed, 0 transient, 0 skipped, 1 simulator errors"
         in out.getvalue().splitlines()
     )
+
+
+async def test_empty_first_message_twice_is_simulator_error(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    sim, model = simulator(cache, [sim_turn("in_progress", ""), sim_turn("in_progress", " ")])
+    judge, judge_model = fake_client(cache, [], spec="ollama:judge")
+    result = await run(
+        LLM_SCENARIO, store, tmp_path, run_id="empty", llm_simulator=sim, judge_client=judge
+    )
+    assert result.conversation_status == {"cooperative-r0": "failed"}
+    conversation = result.conversations[0]
+    assert conversation.ended_reason == "simulator_error"
+    assert conversation.messages == []
+    assert conversation.error == "simulator: ollama:sim produced an empty first user message"
+    assert store.load_checks("empty") == []
+    assert result.checks == []
+    assert model.calls == 2
+    assert judge_model.calls == 0
+
+
+async def test_empty_first_message_retry_is_used(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    outputs = [sim_turn("in_progress", ""), sim_turn("in_progress", "hi"), sim_turn("achieved")]
+    sim, _ = simulator(cache, outputs)
+    result = await run(LLM_SCENARIO, store, tmp_path, run_id="retry", llm_simulator=sim)
+    assert result.conversation_status == {"cooperative-r0": "done"}
+    assert [m.text for m in result.conversations[0].messages] == ["hi", "ok"]
+
+
+class SilentSimulator:
+    """Returns None at once, so no exchange ever happens."""
+
+    async def next_message(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+
+async def test_zero_message_conversation_is_not_done(
+    store: RunStore, cache: SqliteLLMCache, tmp_path: Path
+) -> None:
+    judge, judge_model = fake_client(cache, [], spec="ollama:judge")
+    result = await run(
+        LLM_SCENARIO,
+        store,
+        tmp_path,
+        run_id="silent",
+        llm_simulator=SilentSimulator(),  # type: ignore[arg-type]
+        judge_client=judge,
+    )
+    assert result.conversation_status == {"cooperative-r0": "failed"}
+    conversation = result.conversations[0]
+    assert conversation.ended_reason == "simulator_error"
+    assert conversation.error == "simulator: conversation ended before any exchange"
+    assert store.load_checks("silent") == []
+    assert judge_model.calls == 0
+    assert result.summary[0].passed == 0 and result.summary[0].failed == 0
 
 
 async def test_simulator_replay_miss_is_simulator_error(

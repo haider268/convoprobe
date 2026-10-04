@@ -1,0 +1,52 @@
+{
+  "id": "cooperative-r0",
+  "persona_id": "cooperative",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "I received a damaged item, can I get a refund for order 1042?",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I looked up order 1042 and issued a refund of $89.00 for the Trail Jacket.",
+      "tool_calls": [
+        {
+          "name": "lookup_order",
+          "args": {
+            "order_id": "1042"
+          },
+          "result": {
+            "found": true,
+            "item": "Trail Jacket",
+            "status": "delivered",
+            "amount": 89.0,
+            "refundable": true
+          }
+        },
+        {
+          "name": "issue_refund",
+          "args": {
+            "order_id": "1042",
+            "amount": 89.0
+          },
+          "result": {
+            "refunded": true,
+            "order_id": "1042",
+            "amount": 89.0
+          }
+        }
+      ],
+      "latency_ms": 2.1,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "simulator_stop",
+  "error": null,
+  "source_run": "20261004-141502-c5f3",
+  "adapter": "demo:toy_agent_v1",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

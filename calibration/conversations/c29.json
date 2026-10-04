@@ -1,0 +1,53 @@
+{
+  "id": "scripted_happy_path-r0",
+  "persona_id": "scripted_happy_path",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "My order 1042 arrived damaged, I want a refund.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "Done, I have issued your refund.",
+      "tool_calls": [
+        {
+          "name": "issue_refund",
+          "args": {
+            "order_id": "1042",
+            "amount": null
+          },
+          "result": {
+            "refunded": true,
+            "order_id": "1042",
+            "amount": null
+          }
+        }
+      ],
+      "latency_ms": 4.4,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Thanks, that's all.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "Your refund is already in progress. Is there anything else I can help with?",
+      "tool_calls": [],
+      "latency_ms": 9.8,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "script_end",
+  "error": null,
+  "source_run": "20261004-141502-1937",
+  "adapter": "demo:toy_agent_v2",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

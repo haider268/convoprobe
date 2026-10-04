@@ -1,0 +1,82 @@
+{
+  "id": "gen_hostilehank-r0",
+  "persona_id": "gen_hostilehank",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "Your refund policy is ridiculous! I want my money back now, not after you waste time looking up my order.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.4,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Sure, my order number is 12345.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.5,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Order 12345. Stop wasting time, refund me.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 2.3,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "12345. Stop wasting time.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.5,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "12345. I want a refund now.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.6,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "simulator_stop",
+  "error": null,
+  "source_run": "20261004-141502-c5f3",
+  "adapter": "demo:toy_agent_v1",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

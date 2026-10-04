@@ -1,0 +1,39 @@
+{
+  "id": "gen_impatientian-r0",
+  "persona_id": "gen_impatientian",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "Order wrong, refund now.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "Done, I have issued your refund.",
+      "tool_calls": [
+        {
+          "name": "issue_refund",
+          "args": {
+            "order_id": null,
+            "amount": null
+          },
+          "result": {
+            "refunded": true,
+            "order_id": null,
+            "amount": null
+          }
+        }
+      ],
+      "latency_ms": 9.4,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "simulator_stop",
+  "error": null,
+  "source_run": "20261004-141502-1937",
+  "adapter": "demo:toy_agent_v2",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

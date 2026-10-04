@@ -1,0 +1,96 @@
+{
+  "id": "gen_impatientian-r0",
+  "persona_id": "gen_impatientian",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "Order wrong, refund now.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 7.9,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "123456.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.6,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "123456",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.6,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "123456.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.6,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "123456",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.7,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Fine, refund now.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 4.9,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "simulator_stop",
+  "error": null,
+  "source_run": "20261004-141502-c5f3",
+  "adapter": "demo:toy_agent_v1",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

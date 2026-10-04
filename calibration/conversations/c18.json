@@ -1,0 +1,152 @@
+{
+  "id": "gen_confusedcathy-r0",
+  "persona_id": "gen_confusedcathy",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "Hi, can you tell me if order #12345 has shipped? If not, I'd like a refund.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 4.8,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 7.1,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.4,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.5,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Thanks. Could you check if it has shipped? If not, I'd like a refund.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 2.3,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345. Has it shipped yet?",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.5,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "If it hasn't shipped, I'd like a refund.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 1.7,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345. Has it shipped yet?",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 8.0,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345. Has it shipped yet?",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 0.9,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "My order number is 12345. Has it shipped yet?",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I can help with a refund. What is your order number?",
+      "tool_calls": [],
+      "latency_ms": 0.6,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "max_turns",
+  "error": null,
+  "source_run": "20261004-141502-c5f3",
+  "adapter": "demo:toy_agent_v1",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

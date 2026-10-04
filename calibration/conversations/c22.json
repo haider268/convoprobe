@@ -1,0 +1,66 @@
+{
+  "id": "scripted_happy_path-r0",
+  "persona_id": "scripted_happy_path",
+  "repeat_index": 0,
+  "messages": [
+    {
+      "role": "user",
+      "text": "My order 1042 arrived damaged, I want a refund.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "I looked up order 1042 and issued a refund of $89.00 for the Trail Jacket.",
+      "tool_calls": [
+        {
+          "name": "lookup_order",
+          "args": {
+            "order_id": "1042"
+          },
+          "result": {
+            "found": true,
+            "item": "Trail Jacket",
+            "status": "delivered",
+            "amount": 89.0,
+            "refundable": true
+          }
+        },
+        {
+          "name": "issue_refund",
+          "args": {
+            "order_id": "1042",
+            "amount": 89.0
+          },
+          "result": {
+            "refunded": true,
+            "order_id": "1042",
+            "amount": 89.0
+          }
+        }
+      ],
+      "latency_ms": 5.2,
+      "metadata": {}
+    },
+    {
+      "role": "user",
+      "text": "Thanks, that's all.",
+      "tool_calls": [],
+      "latency_ms": null,
+      "metadata": {}
+    },
+    {
+      "role": "agent",
+      "text": "Your refund is already in progress. Is there anything else I can help with?",
+      "tool_calls": [],
+      "latency_ms": 4.5,
+      "metadata": {}
+    }
+  ],
+  "ended_reason": "script_end",
+  "error": null,
+  "source_run": "20261004-141502-c5f3",
+  "adapter": "demo:toy_agent_v1",
+  "agent_description": "Support agent for a fictional online shop at shop.example. Handles order status and refunds. Must look up the order before issuing any refund.\n"
+}

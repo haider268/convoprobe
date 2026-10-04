@@ -21,7 +21,7 @@ from convoprobe.datamodels import (
     RubricItem,
     Scenario,
 )
-from convoprobe.models.client import LLMClient, StructuredOutputError
+from convoprobe.models.client import LLMClient, ReplayMissError, StructuredOutputError
 
 JUDGE_SYSTEM = (
     "You are a strict QA reviewer of a conversation between a user and an AI agent."
@@ -142,11 +142,20 @@ async def judge_item(
     ]
     base_salt = salt if salt is not None else f"judge:{conversation.id}:{item.id}"
     reason = ""
+    first_miss: ReplayMissError | None = None
     for attempt_salt in (base_salt, base_salt + ":retry1"):
         try:
             answer = await client.structured(messages, schema, salt=attempt_salt)
         except StructuredOutputError as exc:
             reason = str(exc)
+            continue
+        except ReplayMissError as miss:
+            # Invalid output is never cached, so a recorded run whose first attempt
+            # failed holds only the retry answer. Replay follows that path; a second
+            # miss raises the original one.
+            if not client.replay_only or first_miss is not None:
+                raise first_miss or miss from None
+            first_miss = miss
             continue
         bad = [e.turn for e in answer.evidence if not 1 <= e.turn <= max_turn]
         if bad:

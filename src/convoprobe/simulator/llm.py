@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from convoprobe.datamodels import LLMPersona, Message, Scenario, ScriptedPersona
 from convoprobe.errors import ConvoprobeError
-from convoprobe.models.client import LLMClient, StructuredOutputError
+from convoprobe.models.client import LLMClient, ReplayMissError, StructuredOutputError
 
 SIMULATOR_SYSTEM = """You are role-playing a USER talking to an AI agent. You are NOT the agent. Never offer help, never answer as the agent.
 
@@ -94,6 +94,14 @@ class LLMSimulator:
         except StructuredOutputError:
             # One retry with a fresh sample; a second failure propagates.
             turn = await self.client.structured(chat, SimTurn, salt=salt + ":retry1")
+        except ReplayMissError as miss:
+            # A recorded first attempt that failed was never cached; replay its retry.
+            if not self.client.replay_only:
+                raise
+            try:
+                turn = await self.client.structured(chat, SimTurn, salt=salt + ":retry1")
+            except ReplayMissError:
+                raise miss from None
         agent_replied = any(m.role == "agent" for m in messages)
         if agent_replied and turn.goal_status != "in_progress":
             return None

@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, ValidationError
 
 from convoprobe.datamodels import LLMPersona, Scenario, ScriptedPersona
-from convoprobe.models.client import LLMClient, StructuredOutputError
+from convoprobe.models.client import LLMClient, ReplayMissError, StructuredOutputError
 
 PERSONA_PROMPT = """Create {n} different simulated users to stress-test this AI agent.
 
@@ -77,12 +77,18 @@ async def generate_personas(
     messages = [HumanMessage(content=prompt)]
     notes: list[str] = []
     result: GeneratedPersonas | None = None
+    first_miss: ReplayMissError | None = None
     for attempt_salt in (salt, salt + ":retry1"):
         try:
             result = await client.structured(messages, GeneratedPersonas, salt=attempt_salt)
             break
         except StructuredOutputError as exc:
             reason = str(exc)
+        except ReplayMissError as miss:
+            # A recorded first attempt that failed was never cached; replay its retry.
+            if not client.replay_only or first_miss is not None:
+                raise first_miss or miss from None
+            first_miss = miss
     if result is None:
         return [], [f"persona generation failed: {reason}"]
 

@@ -467,16 +467,44 @@ def calibrate_table(
     out: Annotated[Path, typer.Option(help="Markdown file to write.")] = Path(
         "calibration/RESULTS.md"
     ),
+    title: Annotated[str | None, typer.Option(help="Section heading above the table.")] = None,
+    append: Annotated[
+        bool, typer.Option("--append", help="Add to the existing --out file.")
+    ] = False,
+    footer: Annotated[
+        bool,
+        typer.Option(
+            "--footer", help="End with sample size, labels, date, reproduce commands, explanation."
+        ),
+    ] = False,
+    notes: Annotated[
+        list[str] | None, typer.Option("--note", help="Paragraph after the table. Repeatable.")
+    ] = None,
+    no_table: Annotated[
+        bool, typer.Option("--no-table", help="Write the heading and notes only.")
+    ] = False,
 ) -> None:
-    """Write a Markdown table comparing judges."""
+    """Write a Markdown table comparing judges. Build a multi-section file with --append."""
+    if append and not out.is_file():
+        raise _fail(f"--append needs an existing file: {out}")
     try:
         loaded = [load_report(path) for path in reports]
-        text = render_table(loaded, _today())
+        text = render_table(
+            loaded,
+            _today(),
+            title=title,
+            notes=notes or [],
+            table=not no_table,
+            footer=footer,
+            heading=not append,
+        )
     except ConvoprobeError as exc:
         raise _fail(str(exc)) from None
+    if append:
+        text = out.read_text(encoding="utf-8").rstrip("\n") + "\n\n" + text
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")
-    typer.echo(f"wrote {out} ({len(loaded)} judge(s))")
+    typer.echo(f"{'appended to' if append else 'wrote'} {out} ({len(loaded)} judge(s))")
 
 
 cassette_app = typer.Typer(help="Record and inspect replay cassettes.", no_args_is_help=True)

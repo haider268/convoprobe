@@ -665,20 +665,44 @@ def _table_row(report: CalibrationReport) -> str:
     return "| " + " | ".join(cells) + " |"
 
 
-def render_table(
+RESULTS_HEADING = "# Judge calibration results"
+
+
+def render_section(
+    reports: Sequence[CalibrationReport],
+    *,
+    title: str | None = None,
+    notes: Sequence[str] = (),
+    table: bool = True,
+) -> str:
+    """An optional "## title", the judge table (unless table is False), then note paragraphs."""
+    if not reports:
+        raise ConvoprobeError("no calibration reports given")
+    lines: list[str] = []
+    if title:
+        lines += [f"## {title}", ""]
+    if table:
+        lines += [
+            TABLE_HEADER,
+            "|" + "|".join("---" for _ in TABLE_COLUMNS) + "|",
+            *(_table_row(report) for report in reports),
+            "",
+        ]
+    for note in notes:
+        lines += [note, ""]
+    return "\n".join(lines).rstrip("\n") + "\n"
+
+
+def render_footer(
     reports: Sequence[CalibrationReport], date: str, cassette: str = "calibration/cassette.json"
 ) -> str:
-    """The Markdown results table, sample notes, reproduce commands, and explanation."""
+    """Sample size, label provenance, date, reproduce commands, and the kappa explanation."""
     if not reports:
         raise ConvoprobeError("no calibration reports given")
     first = reports[0]
     sources = ", ".join(f"{source.n} {name}" for name, source in first.per_source.items())
     lines = [
-        "# Judge calibration results",
-        "",
-        TABLE_HEADER,
-        "|" + "|".join("---" for _ in TABLE_COLUMNS) + "|",
-        *(_table_row(report) for report in reports),
+        "---",
         "",
         f"n = {first.n_labels} labels ({sources}). Decisions are pass or fail per label;"
         " kappa is Cohen's kappa on those decisions.",
@@ -700,3 +724,21 @@ def render_table(
         )
     lines += ["```", "", KAPPA_EXPLANATION, ""]
     return "\n".join(lines)
+
+
+def render_table(
+    reports: Sequence[CalibrationReport],
+    date: str,
+    *,
+    title: str | None = None,
+    notes: Sequence[str] = (),
+    table: bool = True,
+    footer: bool = False,
+    heading: bool = True,
+) -> str:
+    """One block of RESULTS.md: the top heading (for a new file), a section, the footer."""
+    blocks = [RESULTS_HEADING + "\n"] if heading else []
+    blocks.append(render_section(reports, title=title, notes=notes, table=table))
+    if footer:
+        blocks.append(render_footer(reports, date))
+    return "\n".join(blocks)

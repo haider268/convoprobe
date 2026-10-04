@@ -27,6 +27,7 @@ from convoprobe.calibration import (
     judge_slug,
     load_labels,
     percent_agreement,
+    render_footer,
     render_table,
     resolve_definition,
     score_judge,
@@ -488,7 +489,7 @@ def test_report_json_round_trip(tmp_path: Path, scenarios: list[Path], cache: An
 def test_table_markdown(tmp_path: Path, scenarios: list[Path], cache: Any) -> None:
     write_set(tmp_path)
     report = score(tmp_path, scenarios, judge_client(cache)[0])
-    text = render_table([report], "2026-10-04")
+    text = render_table([report], "2026-10-04", footer=True)
     lines = text.splitlines()
     assert TABLE_HEADER == (
         "| judge | decisions agree | kappa | no_medical_advice kappa | no_outcome_promise kappa"
@@ -516,6 +517,8 @@ def test_table_markdown(tmp_path: Path, scenarios: list[Path], cache: Any) -> No
     )
     with pytest.raises(ConvoprobeError, match="no calibration reports"):
         render_table([], "d")
+    with pytest.raises(ConvoprobeError, match="no calibration reports"):
+        render_footer([], "d")
 
 
 def test_table_real_rubric_columns() -> None:
@@ -601,6 +604,47 @@ def test_cli_score_replay_and_table(
     assert made.exit_code == 0, made.output
     assert made.output.strip() == f"wrote {table} (1 judge(s))"
     assert TABLE_HEADER in table.read_text("utf-8").splitlines()
+
+
+def test_cli_table_sections(tmp_path: Path, scenarios: list[Path], cache: Any) -> None:
+    write_set(tmp_path)
+    report = score(tmp_path, scenarios, judge_client(cache)[0])
+    path = tmp_path / "r.json"
+    path.write_text(report.model_dump_json(), "utf-8")
+    out = tmp_path / "RESULTS.md"
+    base = ["calibrate", "table", str(path), "--out", str(out)]
+
+    missing = runner.invoke(app, [*base, "--append"])
+    assert missing.exit_code == 2
+    assert f"error: --append needs an existing file: {out}" in missing.output
+
+    assert runner.invoke(app, [*base, "--title", "Current rubric"]).exit_code == 0
+    first = out.read_text("utf-8")
+    assert first.startswith("# Judge calibration results\n\n## Current rubric\n\n" + TABLE_HEADER)
+    assert "Reproduce offline" not in first  # no footer unless asked
+
+    result = runner.invoke(app, [*base, "--append", "--title", "Before", "--note", "One sentence."])
+    assert result.exit_code == 0
+    assert result.output.strip() == f"appended to {out} (1 judge(s))"
+    local = ["--append", "--no-table", "--title", "Local judge", "--note", "Not scored."]
+    result = runner.invoke(app, [*base, *local, "--footer"])
+    assert result.exit_code == 0, result.output
+    text = out.read_text("utf-8")
+    assert text.count("# Judge calibration results") == 1
+    assert text.count(TABLE_HEADER) == 2
+    headings = [line for line in text.splitlines() if line.startswith("#")]
+    assert headings == [
+        "# Judge calibration results",
+        "## Current rubric",
+        "## Before",
+        "## Local judge",
+    ]
+    before = text.split("## Before\n\n", 1)[1]
+    assert before.startswith(TABLE_HEADER)
+    assert "\n\nOne sentence.\n\n## Local judge\n\nNot scored.\n\n---\n\nn = 8 labels" in text
+    assert text.endswith(KAPPA_EXPLANATION + "\n")
+    assert text.count("Reproduce offline") == 1
+    assert "\n\n\n" not in text
 
 
 def test_cli_errors(tmp_path: Path, scenarios: list[Path]) -> None:

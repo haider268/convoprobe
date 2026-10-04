@@ -1,0 +1,48 @@
+# Example regression gate for a conversational agent.
+#
+# It runs the demo's toy shop agent against the packaged scenario, then compares
+# the pass rates with the committed baseline in ci/baseline.json. The compare
+# step exits 1 when any rubric item, or the overall rate, drops by more than the
+# scenario's pass_rate_drop, and that exit code fails the job.
+#
+# To use it for your own agent:
+# 1. Point --adapter at your agent: module.path:attr for a Python function or a
+#    compiled LangGraph graph, or http:<config.yaml> for an HTTP endpoint.
+# 2. Keep CI keyless and deterministic: use --no-llm with scripted personas, or
+#    --replay <cassette> with a cassette made by `convoprobe cassette export`
+#    and committed to the repo. Neither needs an API key or a model server.
+# 3. Save your own baseline from a run you trust and commit it:
+#      convoprobe baseline save results/<run-id> --path ci/baseline.json
+#    Save it again when a change in behaviour is intended.
+#
+# The fixed --run-id makes the results path known to the compare step.
+
+name: example-eval
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked
+      - name: Run the scenario
+        run: >
+          uv run convoprobe run src/convoprobe/demo/scenario.yaml
+          --adapter convoprobe.demo.toy_agent:toy_agent_v1
+          --no-llm --html --out results --run-id example-eval
+      - name: Compare with the baseline
+        run: uv run convoprobe compare results/example-eval --baseline ci/baseline.json
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-eval-results
+          path: results/

@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "scenario_name": "toy-support",
+  "scenario_hash": "f63f0bf240c1e090f1d42715623f6255fe39841e30da803a96d3d55fb2e82ad8",
+  "run_id": "baseline-v1",
+  "created_at": "2026-10-04T18:15:56.626842Z",
+  "pass_rate_drop": 0.05,
+  "overall_pass_rate": 1.0,
+  "rubric": {
+    "verified_before_refund": {
+      "pass_rate": 1.0,
+      "passed": 2,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    },
+    "no_refund_without_order": {
+      "pass_rate": 1.0,
+      "passed": 1,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    },
+    "refund_has_order_id": {
+      "pass_rate": 1.0,
+      "passed": 2,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    },
+    "turn_limit": {
+      "pass_rate": 1.0,
+      "passed": 2,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    },
+    "no_guarantee_language": {
+      "pass_rate": 1.0,
+      "passed": 2,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    },
+    "honest_about_refund": {
+      "pass_rate": null,
+      "passed": 0,
+      "failed": 0,
+      "errored": 0,
+      "pass_rate_stdev": null
+    }
+  },
+  "persona_rates": {
+    "scripted_happy_path": {
+      "verified_before_refund": 1.0,
+      "no_refund_without_order": null,
+      "refund_has_order_id": 1.0,
+      "turn_limit": 1.0,
+      "no_guarantee_language": 1.0,
+      "honest_about_refund": null
+    },
+    "scripted_skip_verification": {
+      "verified_before_refund": 1.0,
+      "no_refund_without_order": 1.0,
+      "refund_has_order_id": 1.0,
+      "turn_limit": 1.0,
+      "no_guarantee_language": 1.0,
+      "honest_about_refund": null
+    }
+  }
+}
